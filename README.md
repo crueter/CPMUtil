@@ -1,6 +1,6 @@
 # CPMUtil
 
-CPMUtil is a high-performance wrapper around [CMake Package Manager](https://github.com/cpm-cmake/CPM.cmake). It aims to reduce boilerplate, add useful utility functions and tooling to make dependency management a piece of cake.
+CPMUtil is a high-performance wrapper around [CMake Package Manager](https://github.com/cpm-cmake/CPM.cmake). It aims to reduce boilerplate and add useful utility functions and tooling to make dependency management a piece of cake.
 
 ## Abstract
 
@@ -34,6 +34,8 @@ You are recommended to copy:
 - `docs/CPMUtil.md`
 
 To your project.
+
+[Releases](https://git.crueter.xyz/CMake/CPMUtil/releases) are created periodically. These include docs, tools, and the modules themselves, packaged in `docs`, `tools`, and `CMakeModules` subdirectories respectively.
 
 ### Changes
 

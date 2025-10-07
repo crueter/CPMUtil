@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: main
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pack
+        run: |
+          mkdir CMakeModules
+          mv *.cmake CMakeModules
+
+          mkdir pack
+          mv docs tools CMakeModules pack
+
+      - name: Archive
+        run: |
+          mkdir dist
+          cd pack
+          tar --zstd -cf ../dist/CPMUtil.tar.zst *
+          tar czf        ../dist/CPMUtil.tar.gz  *
+          zip -r         ../dist/CPMUtil.zip     *
+
+      - name: Create release
+        uses: actions/forgejo-release@v2.6.0
+        with:
+          direction: upload
+          tag: continuous
+          title: Continuous Build
+          release-dir: dist
+          override: true
