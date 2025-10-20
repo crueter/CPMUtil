@@ -18,11 +18,15 @@ The goal of CPM.cmake was to solve these problems and integrate dependency check
 
 ## Specifics
 
-For usage, see the [documentation](./docs/CPMUtil.md).
+For usage, see the [documentation](./docs/CPMUtil/).
 
 ## Tooling
 
-See the [tooling docs](./tools/cpm)
+See the [tooling docs](./tools/cpm).
+
+## Hosts
+
+Currently, CPMUtil only supports GitHub, Gitea, and Forgejo. GitLab is not supported and probably won't ever be.
 
 ## Usage in Projects
 
@@ -36,6 +40,14 @@ You are recommended to copy:
 To your project.
 
 [Releases](https://git.crueter.xyz/CMake/CPMUtil/releases) are created periodically. These include docs, tools, and the modules themselves, packaged in `docs`, `tools`, and `CMakeModules` subdirectories respectively.
+
+### Licensing
+
+CPMUtil follows the [GPLv3](./LICENSE). The definition of the GPL within the realm of scripts/CMake modules is a bit iffy, but it can best be defined that every project that uses CPMUtil *or* its tooling MUST be licensed under a form of GPL.
+
+* Remember: the point of the GPL is *specifically* to prevent corporations from taking open-source code and using it in their [proprietary junk](https://www.cs.vu.nl/~ast/intel/). Adding this to your permissively-licensed project *defeats the entire purpose* of the GPL!
+* If you don't like it, don't use it, or better yet, switch to the GPL.
+  - Or make your own... provided you DON'T look at CPMUtil's code!
 
 ### Changes
 

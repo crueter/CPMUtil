@@ -24,6 +24,7 @@ jobs:
         run: |
           mkdir dist
           cd pack
+
           tar --zstd -cf ../dist/CPMUtil.tar.zst *
           tar czf        ../dist/CPMUtil.tar.gz  *
           zip -r         ../dist/CPMUtil.zip     *
