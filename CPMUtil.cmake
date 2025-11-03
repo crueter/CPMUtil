@@ -594,6 +594,14 @@ function(AddCIPackage)
         add_ci_package(windows-arm64)
     endif()
 
+    if ((MINGW AND ARCHITECTURE_x86_64) AND NOT "mingw-amd64" IN_LIST DISABLED_PLATFORMS)
+        add_ci_package(mingw-amd64)
+    endif()
+
+    if ((MINGW AND ARCHITECTURE_arm64) AND NOT "mingw-arm64" IN_LIST DISABLED_PLATFORMS)
+        add_ci_package(mingw-arm64)
+    endif()
+
     if (ANDROID AND NOT "android" IN_LIST DISABLED_PLATFORMS)
         add_ci_package(android)
     endif()
