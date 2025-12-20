@@ -19,8 +19,8 @@ EOF
 
 while :; do
 	case "$1" in
-	-a|--all) ALL=1 ;;
-	-h|--help) usage ;;
+	-a | --all) ALL=1 ;;
+	-h | --help) usage ;;
 	"$0") break ;;
 	"") break ;;
 	*) packages="$packages $1" ;;

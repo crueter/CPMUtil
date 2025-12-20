@@ -71,7 +71,7 @@ while :; do
 		"$SCRIPTS"/download.sh "$@"
 		break
 		;;
-	-h|--help) usage ;;
+	-h | --help) usage ;;
 	"") usage ;;
 	*) usage ;;
 	esac
