@@ -1,0 +1,24 @@
+name: Run Checks
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  checks:
+    runs-on: main
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Shellcheck
+        run: |
+          ./.ci/shellcheck.sh | tee shellcheck.txt
+          [ ! -s shellcheck.txt ]
+
+      - name: Check Formatting and Executable Bits
+        run: |
+          ./.ci/chmod.sh
+          ./.ci/format.sh
+          git --no-pager diff --exit-code HEAD
