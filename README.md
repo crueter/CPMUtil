@@ -74,3 +74,7 @@ CPMUtil follows the [LGPLv3](./LICENSE). The definition of the GPL within the re
 CPMUtil itself is designed to be relatively *plug-and-play*, but the tooling may need changes depending on your specific setup. You will almost certainly need to modify `tools/cpm/common.sh`
 
 See the scripts for more information.
+
+### Notes
+
+CPMUtil currently has a hard dependency on [`DetectArchitecture.cmake`](https://git.crueter.xyz/CMake/Modules/src/branch/master/DetectArchitecture.cmake). This is unlikely to change any time soon.
