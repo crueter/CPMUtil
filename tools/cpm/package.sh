@@ -12,13 +12,14 @@ Usage: cpmutil.sh package [command]
 Operate on a package or packages.
 
 Commands:
-    hash    Verify the hash of a package, and update it if needed
-    update  Check for updates for a package
-    fetch   Fetch a package and place it in the cache
-    add     Add a new package
-    rm      Remove a package
-    version Change the version of a package
-    which   Find which cpmfile a package is defined in
+    hash    	Verify the hash of a package, and update it if needed
+    update  	Check for updates for a package
+    fetch   	Fetch a package and place it in the cache
+    add     	Add a new package
+    rm      	Remove a package
+    version 	Change the version of a package
+    which   	Find which cpmfile a package is defined in
+    download 	Get the download URL for a package
 
 EOF
 
@@ -65,6 +66,13 @@ while :; do
 		"$SCRIPTS"/which.sh "$@"
 		break
 		;;
+	download)
+		shift
+		"$SCRIPTS"/download.sh "$@"
+		break
+		;;
+	-h|--help) usage ;;
+	"") usage ;;
 	*) usage ;;
 	esac
 
