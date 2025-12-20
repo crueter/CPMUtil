@@ -18,6 +18,26 @@ The goal of CPM.cmake was to solve these problems and integrate dependency check
 
 ## Specifics
 
+CPMUtil.cmake defines dependencies in a JSON file or via CMake. You must specify a repository in the form `owner/repo` alongside a commit sha, tag, or tag + artifact. CPMUtil will then take care of URL creation, hash verification, and more for you, with little to no boilerplate required. Packages can be added interactively via the `tools/cpmutil.sh` script, with `tools/cpmutil.sh package add`, and added into a project via `AddJsonPackage(package-name)`. The `cpmutil.sh` script also defines several other useful operations to make dependency management a breeze.
+
+### Advantages over Submodules
+
+- Submodules clone the entire git history of a subproject with no realistic way to avoid it. This is a huge problem for people with slow internet. CPMUtil instead works on significantly smaller source snapshots or artifacts, resulting in a massive improvement in total clone + configure time. This also means it takes up less overall space.
+- CPMUtil automatically manages system dependencies for you. No need to manually run `find_package(package)` and then check if the target exists and add a subdirectory.
+- Submodules are inherently not portable between commits. If a commit changes a submodule's revision and you forget to run `git submodule update`, you may be stuck with a dependency that is either far too new or far too old. With CPMUtil, each revision/version is stored separately, meaning you will never have to worry about weird submodule version conflicts.
+- CPMUtil makes it incredibly trivial to change a package's version. Using the provided `cpmutil.sh` script, one command is all that's needed. With submodules, you have to cd into the submodule directory (which may be hard to find), throw out any potential changes you may have, and check out a different revision.
+- Submodules require third-party software such as `git-archive-all` to archive and distribute source code with all of its dependencies. CPMUtil provides `cpmutil.sh package fetch -a`, which will cache everything into `.cache`, ready for distribution in an instant.
+
+### Advantages over vcpkg
+
+- vcpkg has limited support for systems other than Windows and Linux. CPMUtil works everywhere CMake does.
+- vcpkg has analytics by default. CPMUtil doesn't.
+- vcpkg is significantly slower than CPMUtil, especially with ccache. CPMUtil integrates directly into the build system, meaning you can cache everything with the help of {s,}ccache.
+- CPMUtil is far more configurable. vcpkg enforces default options for each "recipe", whereas packages included via CPMUtil can be debloated and configured to your heart's content.
+- vcpkg requires extra setup to integrate it into your repository, as *it's a dependency itself!* CPMUtil can be integrated fully with just a few small files.
+
+## Docs
+
 For usage, see the [documentation](./docs/CPMUtil/).
 
 ## Tooling

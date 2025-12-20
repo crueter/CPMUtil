@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2025 crueter
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-set(CPM_SOURCE_CACHE "${CMAKE_SOURCE_DIR}/.cache/cpm" CACHE STRING "" FORCE)
+set(CPM_SOURCE_CACHE "${PROJECT_SOURCE_DIR}/.cache/cpm" CACHE STRING "" FORCE)
 
 if(MSVC OR ANDROID)
     set(BUNDLED_DEFAULT ON)
