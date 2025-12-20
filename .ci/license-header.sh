@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 # SPDX-FileCopyrightText: Copyright 2025 crueter
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 # specify full path if dupes may exist
 EXCLUDE_FILES=""
@@ -9,7 +9,7 @@ EXCLUDE_FILES=""
 # license header constants, please change when needed :))))
 YEAR=2025
 HOLDER="crueter"
-LICENSE="GPL-3.0-or-later"
+LICENSE="LGPL-3.0-or-later"
 
 usage() {
 	cat <<EOF

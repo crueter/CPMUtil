@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # SPDX-FileCopyrightText: Copyright 2025 crueter
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 # Required vars: URL, GIT_HOST, REPO, TAG, ARTIFACT, BRANCH, SHA
 if [ "$URL" != "null" ]; then

@@ -63,7 +63,7 @@ To your project.
 
 ### Licensing
 
-CPMUtil follows the [GPLv3](./LICENSE). The definition of the GPL within the realm of scripts/CMake modules is a bit iffy, but it can best be defined that every project that uses CPMUtil *or* its tooling MUST be licensed under a form of GPL.
+CPMUtil follows the [LGPLv3](./LICENSE). The definition of the GPL within the realm of scripts/CMake modules is a bit iffy, but it can best be defined that every project that uses CPMUtil *or* its tooling MUST be licensed under a form of GPL. Older versions of CPMUtil were licensed under the GPL and thus incompatible with LGPL, but now any project running the LGPL, GPL, or AGPL, versions 3 or later, are fully compatible with CPMUtil.
 
 * Remember: the point of the GPL is *specifically* to prevent corporations from taking open-source code and using it in their [proprietary junk](https://www.cs.vu.nl/~ast/intel/). Adding this to your permissively-licensed project *defeats the entire purpose* of the GPL!
 * If you don't like it, don't use it, or better yet, switch to the GPL.
@@ -71,9 +71,6 @@ CPMUtil follows the [GPLv3](./LICENSE). The definition of the GPL within the rea
 
 ### Changes
 
-CPMUtil itself is designed to be relatively *plug-and-play*, but the tooling may need changes depending on your specific setup. You will almost certainly need to modify:
-
-- `tools/cpm/common.sh`
-- `tools/cpm/check-updates.sh`
+CPMUtil itself is designed to be relatively *plug-and-play*, but the tooling may need changes depending on your specific setup. You will almost certainly need to modify `tools/cpm/common.sh`
 
 See the scripts for more information.

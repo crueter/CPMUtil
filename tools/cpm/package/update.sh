@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 # SPDX-FileCopyrightText: Copyright 2025 crueter
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 filter_out() {
 	TAGS=$(echo "$TAGS" | jq "[.[] | select(.name | test(\"$1\"; \"i\") | not)]")
