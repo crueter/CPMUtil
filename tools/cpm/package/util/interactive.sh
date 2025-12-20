@@ -211,7 +211,7 @@ jq --arg key "$PKG" --argjson new "$new_json" \
 if [ "$CI" != true ]; then
 	# shellcheck disable=SC1091
 	. "$ROOTDIR"/common.sh
-	"$SCRIPTS"/util/fix-hash.sh "$PKG"
+	QUIET=true UPDATE=true "$SCRIPTS"/util/fix-hash.sh "$PKG"
 fi
 
 echo "Added package $PKG to $CPMFILE. Include it in your project with AddJsonPackage($PKG)"

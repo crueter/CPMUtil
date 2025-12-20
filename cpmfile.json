@@ -54,7 +54,7 @@
         "package": "ZLIB",
         "repo": "madler/zlib",
         "tag": "v1.3.1.2",
-        "hash": "8c9642495bafd6fad4ab9fb67f09b268c69ff9af0f4f20cf15dfc18852ff1f312bd8ca41de761b3f8d8e90e77d79f2ccacd3d4c5b19e475ecf09d021fdfe9088",
+        "hash": "06eaa3a1eaaeb31f461a2283b03a91ed8eb2406e62cd97ea1c69836324909edeecd93edd03ff0bf593d9dde223e3376149134c5b1fe2e8688c258cadf8cd60ff",
         "version": "1.2",
         "options": [
             "ZLIB_BUILD_SHARED OFF",
@@ -76,5 +76,26 @@
         "ci": true,
         "version": "2.32.10-a65111bd2d",
         "artifact": "SDL2"
+    },
+    "sirit": {
+        "repo": "eden-emulator/sirit",
+        "package": "sirit",
+        "min_version": "1.0.1",
+        "find_args": "CONFIG",
+        "version": "1.0.1",
+        "hash": "9d10e45065dd871c0df5ed7fa86c6b92d49d8f4f527c9c7906c84a422ba1180ada5d2fe2645edaffd37967a92c408575fa49a662d3ccbb155eba6942fd184667",
+        "options": [
+            "SIRIT_BUILD_STATIC ON"
+        ],
+        "sha": "4aa0fe9f2c"
+    },
+    "vulkan-utility-headers": {
+        "repo": "scripts/VulkanUtilityHeaders",
+        "package": "VulkanUtilityLibraries",
+        "hash": "9922217b39faf73cd4fc1510f2fdba14a49aa5c0d77f9ee24ee0512cef16b234d0cabc83c1fec861fa5df1d43e7f086ca9b6501753899119f39c5ca530cb0dae",
+        "git_host": "git.crueter.xyz",
+        "git_version": "1.4.328",
+        "tag": "%VERSION%",
+        "artifact": "VulkanUtilityHeaders.tar.zst"
     }
 }
