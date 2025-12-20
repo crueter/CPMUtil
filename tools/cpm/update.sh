@@ -5,10 +5,10 @@
 
 # updates CPMUtil, its docs, and related tools from the latest release
 
-if command -v zstd > /dev/null; then
-    EXT=tar.zst
+if command -v zstd >/dev/null; then
+	EXT=tar.zst
 else
-    EXT=tar.gz
+	EXT=tar.gz
 fi
 
 wget "https://git.crueter.xyz/CMake/CPMUtil/releases/download/continuous/CPMUtil.$EXT"
