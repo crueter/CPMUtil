@@ -77,4 +77,4 @@ See the scripts for more information.
 
 ### Notes
 
-CPMUtil currently has a hard dependency on [`DetectArchitecture.cmake`](https://git.crueter.xyz/CMake/Modules/src/branch/master/DetectArchitecture.cmake). This is unlikely to change any time soon.
+CPMUtil currently has a hard dependency on [`DetectArchitecture.cmake`](https://git.crueter.xyz/CMake/Modules/src/branch/master/DetectArchitecture.cmake) and [`DetectPlatform.cmake`](https://git.crueter.xyz/CMake/Modules/src/branch/master/DetectPlatform.cmake). This is unlikely to change any time soon.

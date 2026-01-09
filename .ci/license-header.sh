@@ -1,13 +1,13 @@
 #!/bin/sh -e
 
-# SPDX-FileCopyrightText: Copyright 2025 crueter
+# SPDX-FileCopyrightText: Copyright 2026 crueter
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # specify full path if dupes may exist
-EXCLUDE_FILES=""
+EXCLUDE_FILES="CPM.cmake"
 
 # license header constants, please change when needed :))))
-YEAR=2025
+YEAR=2026
 HOLDER="crueter"
 LICENSE="LGPL-3.0-or-later"
 
@@ -112,10 +112,10 @@ for file in $FILES; do
 		esac
 	done
 
-	[ "$excluded" = "true" ] && continue
+	[ "$excluded" != "true" ] || continue
 
 	case "$file" in
-	*.cmake | *.sh | CMakeLists.txt)
+	*.cmake | *.sh | *CMakeLists.txt)
 		begin="#"
 		;;
 	*.kt* | *.cpp | *.h)
@@ -233,8 +233,8 @@ if [ "$UPDATE" = "true" ]; then
 			mv "$file".bak "$file"
 		fi
 
-		[ "$shell" = "true" ] && chmod a+x "$file"
-		[ "$COMMIT" = "true" ] && git add "$file"
+		[ "$shell" != "true" ] || chmod a+x "$file"
+		[ "$COMMIT" != "true" ] || git add "$file"
 	done
 
 	echo "-- Done"
@@ -248,4 +248,4 @@ if [ "$COMMIT" = "true" ]; then
 	echo "-- Changes committed. You may now push."
 fi
 
-[ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
+[ ! -d "$TMP_DIR" ] || rm -rf "$TMP_DIR"
