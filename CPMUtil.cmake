@@ -23,6 +23,14 @@ set(CPMUTIL_JSON_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cpmfile.json")
 
 if(EXISTS ${CPMUTIL_JSON_FILE})
     file(READ ${CPMUTIL_JSON_FILE} CPMFILE_CONTENT)
+    if (NOT TARGET cpmfiles)
+        add_custom_target(cpmfiles)
+    endif()
+
+    target_sources(cpmfiles PRIVATE ${CPMUTIL_JSON_FILE})
+    set_property(DIRECTORY APPEND PROPERTY
+        CMAKE_CONFIGURE_DEPENDS
+        "${CPMUTIL_JSON_FILE}")
 else()
     message(DEBUG "[CPMUtil] cpmfile ${CPMUTIL_JSON_FILE}"
         "does not exist, AddJsonPackage will be a no-op")
