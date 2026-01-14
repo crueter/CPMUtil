@@ -297,15 +297,16 @@ function(AddPackage)
         cpm_utils_message(FATAL_ERROR "package" "No package name defined")
     endif()
 
-    set(${PKG_ARGS_NAME}_DIR "" CACHE STRING
+    set(${PKG_ARGS_NAME}_CUSTOM_DIR "" CACHE STRING
         "Path to a separately-downloaded copy of ${PKG_ARGS_NAME}")
     option(${PKG_ARGS_NAME}_FORCE_SYSTEM
         "Force the system package for ${PKG_ARGS_NAME}")
     option(${PKG_ARGS_NAME}_FORCE_BUNDLED
         "Force the bundled package for ${PKG_ARGS_NAME}")
 
-    if (DEFINED ${PKG_ARGS_NAME}_DIR AND NOT ${PKG_ARGS_NAME}_DIR STREQUAL "")
-        set(CPM_${PKG_ARGS_NAME}_SOURCE ${${PKG_ARGS_NAME}_DIR})
+    if (DEFINED ${PKG_ARGS_NAME}_CUSTOM_DIR AND
+        NOT ${PKG_ARGS_NAME}_CUSTOM_DIR STREQUAL "")
+        set(CPM_${PKG_ARGS_NAME}_SOURCE ${${PKG_ARGS_NAME}_CUSTOM_DIR})
     endif()
 
     if(NOT DEFINED PKG_ARGS_GIT_HOST)
