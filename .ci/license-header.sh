@@ -118,7 +118,7 @@ for file in $FILES; do
 	*.cmake | *.sh | *CMakeLists.txt)
 		begin="#"
 		;;
-	*.kt* | *.cpp | *.h)
+	*.kt* | *.cpp | *.h | *.c | *.qml)
 		begin="//"
 		;;
 	*)
@@ -188,7 +188,7 @@ if [ "$UPDATE" = "true" ]; then
 
 	for file in $SRC_FILES $OTHER_FILES; do
 		case $(basename -- "$file") in
-		*.cmake | CMakeLists.txt)
+		*.cmake | *CMakeLists.txt)
 			begin="#"
 			shell="false"
 			;;
@@ -196,7 +196,7 @@ if [ "$UPDATE" = "true" ]; then
 			begin="#"
 			shell=true
 			;;
-		*.kt* | *.cpp | *.h)
+		*.kt* | *.cpp | *.h | *.c | *.qml)
 			begin="//"
 			shell="false"
 			;;

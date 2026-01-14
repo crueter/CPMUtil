@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(cpmutil-tests LANGUAGES CXX)
+project(cpmutil-tests LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/..)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
@@ -14,3 +14,4 @@ include(DetectPlatform)
 include(CPMUtil)
 
 add_subdirectory(qt)
+add_subdirectory(dir)
