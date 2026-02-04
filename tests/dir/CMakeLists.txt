@@ -31,5 +31,9 @@ set(OPUS_BUILD_SHARED_LIBRARY OFF)
 
 AddJsonPackage(opus)
 
+if (NOT ${Opus_SOURCE_DIR} STREQUAL ${opus_dir})
+    message(STATUS "Opus found in ${OPUS_SOURCE_DIR}, expected ${opus_dir}")
+endif()
+
 add_executable(test_opus main.c)
 target_link_libraries(test_opus Opus::opus)
