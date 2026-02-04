@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     camera->start();
 
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(&window);
-    QUrl url("https://wttr.in/Nuremberg?format=3&T&d");
+    QUrl url("https://example.com");
     QNetworkRequest request(url);
 
     QNetworkReply *reply = networkManager->get(request);
@@ -68,8 +68,10 @@ int main(int argc, char *argv[])
         if (reply->error() == QNetworkReply::NoError) {
             QString content = QString::fromUtf8(reply->readAll()).trimmed();
             contentLabel->setText("<b>Fetched Content:</b><br>" + content);
+            qDebug() << "Fetched content:" << content;
         } else {
             contentLabel->setText("Error loading content:<br>" + reply->errorString());
+            qDebug() << "Failed to fetch content:" << reply->errorString();
         }
         reply->deleteLater();
 

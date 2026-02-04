@@ -26,7 +26,7 @@ endif()
 
 # use opus_dir stuff
 set(CPMUTIL_FORCE_BUNDLED ON)
-set(Opus_DIR "${opus_dir}" CACHE STRING "" FORCE)
+set(Opus_CUSTOM_DIR "${opus_dir}" CACHE STRING "" FORCE)
 set(OPUS_BUILD_SHARED_LIBRARY OFF)
 
 AddJsonPackage(opus)
