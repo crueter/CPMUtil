@@ -132,6 +132,9 @@ for pkg in $packages; do
 
 		"$SCRIPTS"/util/replace.sh "$PACKAGE" "$NEW_JSON"
 
-		QUIET=true "$SCRIPTS"/util/fix-hash.sh
+		echo "-- * -- Updating hash"
+
+		export UPDATE
+		QUIET=true "$SCRIPTS"/util/fix-hash.sh "$PACKAGE"
 	fi
 done
