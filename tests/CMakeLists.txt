@@ -15,3 +15,4 @@ include(CPMUtil)
 
 add_subdirectory(qt)
 add_subdirectory(dir)
+add_subdirectory(ffmpeg)

@@ -1,11 +1,9 @@
 {
     "openssl": {
-        "ci": true,
-        "package": "OpenSSL",
-        "name": "openssl",
         "repo": "crueter-ci/OpenSSL",
-        "version": "3.6.0-965d6279e8",
-        "min_version": "1.1.1"
+        "ci": true,
+        "version": "3.6.0-1cb0d36b39",
+        "artifact": "openssl"
     },
     "boost": {
         "package": "Boost",
@@ -98,5 +96,11 @@
         "git_version": "1.4.328",
         "tag": "%VERSION%",
         "artifact": "VulkanUtilityHeaders.tar.zst"
+    },
+    "ffmpeg": {
+        "repo": "crueter-ci/FFmpeg-Qt",
+        "ci": true,
+        "version": "8.0.1-5e56937b74",
+        "artifact": "ffmpeg"
     }
 }
