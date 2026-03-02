@@ -152,7 +152,9 @@ for pkg in $packages; do
 done
 
 if [ "$UPDATE" = "true" ] && [ "$COMMIT" = "true" ] && [ -n "$_commit" ]; then
-	git add "$CPMFILES"
+	for file in $CPMFILES; do
+		git add "$file"
+	done
 	git commit -m "Update dependencies
 $_commit"
 fi
