@@ -100,7 +100,7 @@
     "ffmpeg": {
         "repo": "crueter-ci/FFmpeg-Qt",
         "ci": true,
-        "version": "8.0.1-5e56937b74",
+        "version": "8.2-f16c3cc5aa",
         "artifact": "ffmpeg"
     }
 }

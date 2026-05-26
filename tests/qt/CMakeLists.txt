@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2026 crueter
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-AddQt(6.9.3)
+AddQt(QDash-CI/Qt 6.11.1)
 find_package(Qt6 REQUIRED COMPONENTS Widgets MultimediaWidgets Network)
 
 message(STATUS "Qt directory: ${Qt6_DIR}")
