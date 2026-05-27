@@ -7,7 +7,10 @@ AddJsonPackage(zlib)
 
 # ffmpeg fun
 
-AddJsonPackage(openssl)
+if (NOT APPLE)
+    AddJsonPackage(openssl)
+endif()
+
 AddJsonPackage(ffmpeg)
 
 set(FFMPEG_INCLUDE_DIR ${ffmpeg_SOURCE_DIR}/include)
@@ -73,6 +76,15 @@ if (UNIX AND NOT ANDROID)
     endif()
 endif()
 
+if(APPLE)
+    foreach(fw VideoToolbox CoreVideo CoreMedia CoreFoundation AudioToolbox Security)
+        find_library(${fw}_LIBRARY ${fw} REQUIRED)
+        list(APPEND FFmpeg_HWACCEL_LIBRARIES ${${fw}_LIBRARY})
+    endforeach()
+
+    list(APPEND FFmpeg_HWACCEL_LIBRARIES bz2)
+endif()
+
 add_executable(test_ffmpeg main.cpp)
 
 # TODO(crueter): dunno why interface lib doesn't werk
@@ -85,9 +97,12 @@ target_link_libraries(test_ffmpeg PRIVATE
     FFmpeg::swresample
     FFmpeg::swscale
 
-    OpenSSL::SSL
-    OpenSSL::Crypto
-
     ZLIB::ZLIB
 
     ${FFmpeg_HWACCEL_LIBRARIES})
+
+if (NOT APPLE)
+    target_link_libraries(test_ffmpeg PRIVATE
+        OpenSSL::SSL
+        OpenSSL::Crypto)
+endif()
