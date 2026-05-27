@@ -247,7 +247,9 @@ function(AddJsonPackage)
 
     set(multiValueArgs OPTIONS)
 
-    cmake_parse_arguments(JSON "" "${oneValueArgs}" "${multiValueArgs}"
+    set(options MODULE)
+
+    cmake_parse_arguments(JSON "${options}" "${oneValueArgs}" "${multiValueArgs}"
         "${ARGN}")
 
     list(LENGTH ARGN argnLength)
@@ -277,6 +279,10 @@ function(AddJsonPackage)
     parse_object(${object})
 
     if(ci)
+        if (JSON_MODULE)
+            set(EXTRA_ARGS MODULE)
+        endif()
+
         AddCIPackage(
             VERSION ${version}
             NAME ${name}
@@ -284,8 +290,8 @@ function(AddJsonPackage)
             PACKAGE ${package}
             EXTENSION ${extension}
             MIN_VERSION ${min_version}
-            DISABLED_PLATFORMS ${disabled_platforms})
-
+            DISABLED_PLATFORMS ${disabled_platforms}
+            ${EXTRA_ARGS})
     else()
         if (NOT DEFINED JSON_FORCE_BUNDLED_PACKAGE)
             set(JSON_FORCE_BUNDLED_PACKAGE OFF)
