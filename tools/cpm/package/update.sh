@@ -110,6 +110,12 @@ for pkg in $packages; do
 	filter_out beta
 	filter_out rc
 
+	# openssl
+	if [ "$PACKAGE" = openssl ]; then
+		filter_out rsaref
+		filter_in "openssl-"
+	fi
+
 	# Add package-specific overrides here, e.g. here for fmt:
 	[ "$PACKAGE" != fmt ] || filter_out v0.11
 
