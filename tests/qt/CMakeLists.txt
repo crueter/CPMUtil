@@ -1,8 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2026 crueter
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-AddQt(crueter-ci/Qt 6.11.1)
-
 if (NOT WIN32)
     AddCIPackage(
         NAME ffmpeg
@@ -10,7 +8,11 @@ if (NOT WIN32)
         VERSION 8.2-f16c3cc5aa
         REPO crueter-ci/FFmpeg-Qt
         MODULE)
+
+    set(FFMPEG_DIR "${FFmpeg_SOURCE_DIR}")
 endif()
+
+AddQt(crueter-ci/Qt 6.11.1)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets MultimediaWidgets Network)
 
