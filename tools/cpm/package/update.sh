@@ -131,34 +131,36 @@ for pkg in $packages; do
 		# this just extracts the tag prefix
 		VERSION_PREFIX=$(echo "$ORIGINAL_TAG" | cut -d"%" -f1)
 
-		# then we strip out the prefix from the new tag, and make that our new git_version
+		# then we strip out the prefix from the new tag, and make that our new version
 		if [ -z "$VERSION_PREFIX" ]; then
-			NEW_GIT_VERSION="$LATEST"
+			NEW_VERSION="$LATEST"
 		else
-			NEW_GIT_VERSION=$(echo "$LATEST" | sed "s/$VERSION_PREFIX//g")
+			NEW_VERSION=$(echo "$LATEST" | sed "s/$VERSION_PREFIX//g")
 		fi
 	else
-		NEW_GIT_VERSION="$LATEST"
+		NEW_VERSION="$LATEST"
 	fi
 
 	_commit="$_commit
-* $PACKAGE: $GIT_VERSION -> $NEW_GIT_VERSION"
+* $PACKAGE: $VERSION -> $NEW_VERSION"
 
 	echo "-- * Version $LATEST available, current is $TAG"
 
 	if [ "$UPDATE" = "true" ]; then
 		if [ "$HAS_REPLACE" = "true" ]; then
-			NEW_JSON=$(echo "$JSON" | jq ".git_version = \"$NEW_GIT_VERSION\"")
+			JSON=$(echo "$JSON" | jq ".version = \"$NEW_VERSION\"")
 		else
-			NEW_JSON=$(echo "$JSON" | jq ".tag = \"$NEW_GIT_VERSION\"")
+			JSON=$(echo "$JSON" | jq ".tag = \"$NEW_VERSION\"")
 		fi
-
-		"$SCRIPTS"/util/replace.sh "$PACKAGE" "$NEW_JSON"
 
 		echo "-- * -- Updating hash"
 
-		export UPDATE
-		QUIET=true "$SCRIPTS"/util/fix-hash.sh "$PACKAGE"
+		# shellcheck disable=SC1091
+		. "$SCRIPTS"/vars.sh
+		HASH=$("$SCRIPTS"/util/url-hash.sh "$DOWNLOAD")
+		JSON=$(echo "$JSON" | jq ".hash = \"$HASH\"")
+
+		"$SCRIPTS"/util/replace.sh "$PACKAGE" "$JSON"
 	fi
 done
 

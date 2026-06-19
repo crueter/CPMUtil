@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: Copyright 2026 crueter
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
+# TODO(crueter): Fix this pls
+
 # This reads a single-line input from the user and also gives them
 # help if needed.
 # $1: The prompt itself, without any trailing spaces or whatever

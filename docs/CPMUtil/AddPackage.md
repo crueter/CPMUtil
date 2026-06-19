@@ -36,13 +36,6 @@ The following configurations are supported, in descending order of precedence:
   - Useful for pinning to a specific tag, better for build identification
 - `REPO + SHA`: GitHub commit archive
   - The final download URL will be `https://github.com/${REPO}/archive/${SHA}.zip`
-  - Useful for pinning to a specific commit
-- `REPO + BRANCH`: GitHub branch archive
-  - The final download URL will be `https://github.com/${REPO}/archive/refs/heads/${BRANCH}.zip`
-  - Generally not recommended unless the branch is frozen
-- `REPO`: GitHub master archive
-  - The final download URL will be `https://github.com/${REPO}/archive/refs/heads/master.zip`
-  - Generally not recommended unless the project is dead
 
 ## Hashing
 
