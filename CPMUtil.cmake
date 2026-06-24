@@ -535,15 +535,15 @@ function(AddPackage)
         if(DEFINED PKG_ARGS_SHA)
             set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
                 ${PKG_ARGS_SHA})
-        elseif(DEFINED PKG_ARGS_MIN_VERSION)
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                ${PKG_ARGS_MIN_VERSION})
-        elseif(DEFINED PKG_ARGS_TAG)
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                ${PKG_ARGS_TAG})
         elseif(DEFINED PKG_ARGS_VERSION)
             set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
                 ${PKG_ARGS_VERSION})
+        elseif(DEFINED PKG_ARGS_TAG)
+            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
+                ${PKG_ARGS_TAG})
+        elseif(DEFINED PKG_ARGS_MIN_VERSION)
+            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
+                ${PKG_ARGS_MIN_VERSION})
         else()
             cpm_utils_message(WARNING ${PKG_ARGS_NAME}
                 "Package has no specified sha, tag, or version")
