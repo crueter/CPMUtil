@@ -20,7 +20,3 @@ export PACKAGES
 export LIBS
 export DIRS
 export MAXDEPTH
-
-echo "$PACKAGES"
-echo
-echo "$LIBS"

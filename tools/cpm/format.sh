@@ -5,5 +5,5 @@
 
 file=cpmfile.json
 
-jq --indent 4 <"$file" >"$file".new
+jq --indent 4 -S <"$file" >"$file".new
 mv "$file".new "$file"
