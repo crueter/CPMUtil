@@ -1,36 +1,20 @@
 {
-    "openssl": {
-        "repo": "crueter-ci/OpenSSL",
-        "ci": true,
-        "version": "3.6.0-1cb0d36b39",
-        "artifact": "openssl"
-    },
     "boost": {
+        "artifact": "%TAG%-cmake.7z",
+        "hash": "e5b049e5b61964480ca816395f63f95621e66cb9bcf616a8b10e441e0e69f129e22443acb11e77bc1e8170f8e4171b9b7719891efc43699782bfcd4b3a365f01",
+        "min_version": "1.57",
         "package": "Boost",
         "repo": "boostorg/boost",
         "tag": "boost-%VERSION%",
-        "artifact": "%TAG%-cmake.7z",
-        "hash": "e5b049e5b61964480ca816395f63f95621e66cb9bcf616a8b10e441e0e69f129e22443acb11e77bc1e8170f8e4171b9b7719891efc43699782bfcd4b3a365f01",
-        "version": "1.88.0",
-        "min_version": "1.57"
+        "version": "1.88.0"
     },
-    "opus": {
-        "package": "Opus",
-        "repo": "xiph/opus",
-        "sha": "5ded705cf4",
-        "hash": "d209d69cbffc671b884c766ec5a19b7c6bf3f0465812dde85afb5f13d1208b953efae4a0c580872dc0fe8b6d24e8905a8e2a91f71934b70c87a1ea6c5d3505cf",
-        "version": "1.3",
-        "find_args": "MODULE",
-        "options": [
-            "OPUS_BUILD_TESTING OFF",
-            "OPUS_BUILD_PROGRAMS OFF",
-            "OPUS_INSTALL_PKG_CONFIG_MODULE OFF",
-            "OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF"
-        ]
+    "carboxyl": {
+        "hash": "a9c935956bbf0aba688f4283f63f60b25525dc858cc0885f5b7a2ffd1c26684b028b31398182702532a59010f3b1bef8bc2d904cc2b3af9c8d85a97d24bb68b8",
+        "repo": "crueter/carboxyl",
+        "sha": "618487377a",
+        "version": "0.1"
     },
     "discord-rpc": {
-        "repo": "discord/discord-rpc",
-        "sha": "963aa9f3e5",
         "hash": "06205287addabfb343ccd9af997b693ed221fe564355d3629d4dee6c003e768b3f65f2b34eb04ef29807a15c5fa34b04c664212b7e0d15b09ad9a4e4be10a560",
         "options": [
             "BUILD_EXAMPLES OFF"
@@ -39,68 +23,90 @@
             "0001-cmake-version.patch",
             "0002-no-clang-format.patch",
             "0003-fix-cpp17.patch"
-        ]
+        ],
+        "repo": "discord/discord-rpc",
+        "sha": "963aa9f3e5"
+    },
+    "ffmpeg": {
+        "artifact": "ffmpeg",
+        "ci": true,
+        "repo": "crueter-ci/FFmpeg-Qt",
+        "version": "8.2-f16c3cc5aa"
     },
     "fmt": {
-        "repo": "fmtlib/fmt",
-        "tag": "%VERSION%",
         "hash": "f0da82c545b01692e9fd30fdfb613dbb8dd9716983dcd0ff19ac2a8d36f74beb5540ef38072fdecc1e34191b3682a8542ecbf3a61ef287dbba0a2679d4e023f2",
         "min_version": "8",
+        "repo": "fmtlib/fmt",
+        "tag": "%VERSION%",
         "version": "12.1.0"
     },
-    "zlib": {
-        "package": "ZLIB",
-        "repo": "madler/zlib",
-        "tag": "v%VERSION%",
-        "hash": "06eaa3a1eaaeb31f461a2283b03a91ed8eb2406e62cd97ea1c69836324909edeecd93edd03ff0bf593d9dde223e3376149134c5b1fe2e8688c258cadf8cd60ff",
-        "min_version": "1.2",
-        "version": "1.3.1.2",
+    "openssl": {
+        "artifact": "openssl",
+        "ci": true,
+        "repo": "crueter-ci/OpenSSL",
+        "version": "3.6.0-1cb0d36b39"
+    },
+    "opus": {
+        "find_args": "MODULE",
+        "hash": "d209d69cbffc671b884c766ec5a19b7c6bf3f0465812dde85afb5f13d1208b953efae4a0c580872dc0fe8b6d24e8905a8e2a91f71934b70c87a1ea6c5d3505cf",
         "options": [
-            "ZLIB_BUILD_SHARED OFF",
-            "ZLIB_INSTALL OFF"
-        ]
+            "OPUS_BUILD_TESTING OFF",
+            "OPUS_BUILD_PROGRAMS OFF",
+            "OPUS_INSTALL_PKG_CONFIG_MODULE OFF",
+            "OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF"
+        ],
+        "package": "Opus",
+        "repo": "xiph/opus",
+        "sha": "5ded705cf4",
+        "version": "1.3"
+    },
+    "sdl2": {
+        "artifact": "SDL2",
+        "ci": true,
+        "min_version": "2.26.4",
+        "package": "SDL2",
+        "repo": "crueter-ci/SDL2",
+        "version": "2.32.10-a65111bd2d"
+    },
+    "sirit": {
+        "find_args": "CONFIG",
+        "hash": "b7cd6885acae3fc8698288d19febba0dd45e4a02a2b6563d2eb995a988d0847046e8d16a5dea7e0bf832b4321bcec134cdbafc553f6ede039e4cf34525c5dce5",
+        "min_version": "1.0.1",
+        "options": [
+            "SIRIT_BUILD_STATIC ON"
+        ],
+        "package": "sirit",
+        "repo": "eden-emulator/sirit",
+        "tag": "v%VERSION%",
+        "version": "1.0.5"
     },
     "unordered-dense": {
+        "find_args": "CONFIG",
+        "hash": "f9c819e28e1c1a387acfee09277d6af5e366597a0d39acf1c687acf0608a941ba966af8aaebdb8fba0126c7360269c4a51754ef4cab17c35c01a30215f953368",
         "package": "unordered_dense",
         "repo": "martinus/unordered_dense",
         "tag": "v%VERSION%",
-        "hash": "f9c819e28e1c1a387acfee09277d6af5e366597a0d39acf1c687acf0608a941ba966af8aaebdb8fba0126c7360269c4a51754ef4cab17c35c01a30215f953368",
-        "find_args": "CONFIG",
         "version": "4.5.0"
     },
-    "sdl2": {
-        "repo": "crueter-ci/SDL2",
-        "package": "SDL2",
-        "min_version": "2.26.4",
-        "ci": true,
-        "version": "2.32.10-a65111bd2d",
-        "artifact": "SDL2"
-    },
-    "sirit": {
-        "repo": "eden-emulator/sirit",
-        "package": "sirit",
-        "min_version": "1.0.1",
-        "find_args": "CONFIG",
-        "version": "1.0.5",
-        "tag": "v%VERSION%",
-        "hash": "b7cd6885acae3fc8698288d19febba0dd45e4a02a2b6563d2eb995a988d0847046e8d16a5dea7e0bf832b4321bcec134cdbafc553f6ede039e4cf34525c5dce5",
-        "options": [
-            "SIRIT_BUILD_STATIC ON"
-        ]
-    },
     "vulkan-utility-headers": {
-        "repo": "scripts/VulkanUtilityHeaders",
-        "package": "VulkanUtilityLibraries",
-        "hash": "9922217b39faf73cd4fc1510f2fdba14a49aa5c0d77f9ee24ee0512cef16b234d0cabc83c1fec861fa5df1d43e7f086ca9b6501753899119f39c5ca530cb0dae",
+        "artifact": "VulkanUtilityHeaders.tar.zst",
         "git_host": "git.crueter.xyz",
-        "version": "1.4.328",
+        "hash": "9922217b39faf73cd4fc1510f2fdba14a49aa5c0d77f9ee24ee0512cef16b234d0cabc83c1fec861fa5df1d43e7f086ca9b6501753899119f39c5ca530cb0dae",
+        "package": "VulkanUtilityLibraries",
+        "repo": "scripts/VulkanUtilityHeaders",
         "tag": "%VERSION%",
-        "artifact": "VulkanUtilityHeaders.tar.zst"
+        "version": "1.4.328"
     },
-    "ffmpeg": {
-        "repo": "crueter-ci/FFmpeg-Qt",
-        "ci": true,
-        "version": "8.2-f16c3cc5aa",
-        "artifact": "ffmpeg"
+    "zlib": {
+        "hash": "06eaa3a1eaaeb31f461a2283b03a91ed8eb2406e62cd97ea1c69836324909edeecd93edd03ff0bf593d9dde223e3376149134c5b1fe2e8688c258cadf8cd60ff",
+        "min_version": "1.2",
+        "options": [
+            "ZLIB_BUILD_SHARED OFF",
+            "ZLIB_INSTALL OFF"
+        ],
+        "package": "ZLIB",
+        "repo": "madler/zlib",
+        "tag": "v%VERSION%",
+        "version": "1.3.1.2"
     }
 }
