@@ -147,7 +147,7 @@ export KEY
 HASH=$(value "hash")
 
 if [ "$HASH" = null ]; then
-	echo "!! No hash defined for $PACKAGE_NAME"
+	echo "!! No hash defined for $PACKAGE_NAME" >&2
 fi
 
 export HASH
