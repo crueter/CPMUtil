@@ -82,13 +82,14 @@ for pkg in $packages; do
 
 	echo "-- Package $PACKAGE"
 
-	# TODO(crueter): Support for Forgejo updates w/ forgejo_token
-	# Use gh-cli to avoid ratelimits, if available
+	# TODO(crueter): Support for forgejo_token?
 	endpoint="/repos/$REPO/tags"
 	if command -v gh >/dev/null 2>&1; then
 		TAGS=$(gh api --method GET "$endpoint")
-	else
+	elif [ "$GIT_HOST" = github.com ]; then
 		TAGS=$(curl -sfL "https://api.github.com$endpoint")
+	else
+		TAGS=$(curl -sfL "https://$GIT_HOST/api/v1$endpoint")
 	fi
 
 	# filter out some commonly known annoyances
@@ -102,7 +103,6 @@ for pkg in $packages; do
 
 	filter_out yotta # mbedtls
 
-	# ????????????????????????????????
 	filter_out vksc
 
 	# ignore betas/alphas (remove if needed)
@@ -110,14 +110,14 @@ for pkg in $packages; do
 	filter_out beta
 	filter_out rc
 
-	# openssl
+	# Add package-specific overrides here, e.g. here for fmt:
+	[ "$PACKAGE" != fmt ] || filter_out v0.11
+
+	# Or for OpenSSL:
 	if [ "$PACKAGE" = openssl ]; then
 		filter_out rsaref
 		filter_in "openssl-"
 	fi
-
-	# Add package-specific overrides here, e.g. here for fmt:
-	[ "$PACKAGE" != fmt ] || filter_out v0.11
 
 	LATEST=$(echo "$TAGS" | jq -r '.[0].name')
 
@@ -126,6 +126,8 @@ for pkg in $packages; do
 		echo "-- * Up-to-date"
 		continue
 	fi
+
+	# TODO: This is identical to version.sh
 
 	if [ "$HAS_REPLACE" = "true" ]; then
 		# this just extracts the tag prefix
@@ -165,9 +167,7 @@ for pkg in $packages; do
 done
 
 if [ "$UPDATE" = "true" ] && [ "$COMMIT" = "true" ] && [ -n "$_commit" ]; then
-	for file in $CPMFILES; do
-		git add "$file"
-	done
+	git add "cpmfile.json"
 	git commit -m "Update dependencies
 $_commit"
 fi

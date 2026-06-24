@@ -5,12 +5,14 @@ CPMUtil is a high-performance wrapper around [CMake Package Manager](https://git
 ## Abstract
 
 The "traditional" method of dependency management is to use `find_package`, and if unavailable, include dependencies with vcpkg or Git submodules. However, this approach has a number of significant problems:
+
 - Both are very slow
 - Submodules are difficult to archive
 - vcpkg is a dependency itself!
 - Lots of manual intervention and target checking needed
 
 The goal of CPM.cmake was to solve these problems and integrate dependency checking within CMake. CPMUtil aims to iterate upon CPM's base and make dependency management a truly and completely solved problem. CPMUtil adds:
+
 - Full shell script tooling for dependency management and sanity checking
 - Definitions in JSON to aggregate dependencies in one place (no need to write CMake just to change some deps around)
 - Utility functions that handle all sorts of boilerplate for you
@@ -38,7 +40,7 @@ CPMUtil.cmake defines dependencies in a JSON file or via CMake. You must specify
 
 ## Docs
 
-For usage, see the [documentation](./docs/CPMUtil/).
+For usage, see the [documentation](./docs/CPMUtil.md).
 
 ## Tooling
 
@@ -65,16 +67,10 @@ To your project.
 
 CPMUtil follows the [LGPLv3](./LICENSE). The definition of the GPL within the realm of scripts/CMake modules is a bit iffy, but it can best be defined that every project that uses CPMUtil *or* its tooling MUST be licensed under a form of GPL. Older versions of CPMUtil were licensed under the GPL and thus incompatible with LGPL, but now any project running the LGPL, GPL, or AGPL, versions 3 or later, are fully compatible with CPMUtil.
 
-* Remember: the point of the GPL is *specifically* to prevent corporations from taking open-source code and using it in their [proprietary junk](https://www.cs.vu.nl/~ast/intel/). Adding this to your permissively-licensed project *defeats the entire purpose* of the GPL!
-* If you don't like it, don't use it, or better yet, switch to the GPL.
-  - Or make your own... provided you DON'T look at CPMUtil's code!
+- Remember... the point of the GPL is *specifically* to prevent corporations from taking open-source code and using it in their [proprietary junk](https://www.cs.vu.nl/~ast/intel/). Adding this to your permissively-licensed project *defeats the entire purpose* of the GPL!
 
 ### Changes
 
 CPMUtil itself is designed to be relatively *plug-and-play*, but the tooling may need changes depending on your specific setup. You will almost certainly need to modify `tools/cpm/common.sh`
 
 See the scripts for more information.
-
-### Notes
-
-CPMUtil currently has a hard dependency on [`DetectArchitecture.cmake`](https://git.crueter.xyz/CMake/Modules/src/branch/master/DetectArchitecture.cmake) and [`DetectPlatform.cmake`](https://git.crueter.xyz/CMake/Modules/src/branch/master/DetectPlatform.cmake). This is unlikely to change any time soon.

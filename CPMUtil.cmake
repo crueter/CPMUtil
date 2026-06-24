@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2026 crueter
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-set(CPM_SOURCE_CACHE "${PROJECT_SOURCE_DIR}/.cache/cpm" CACHE STRING "" FORCE)
+cmake_minimum_required(VERSION 3.31)
 
 if(MSVC OR ANDROID OR IOS)
     set(BUNDLED_DEFAULT ON)
@@ -9,17 +9,39 @@ else()
     set(BUNDLED_DEFAULT OFF)
 endif()
 
+set(CPM_SOURCE_CACHE "${PROJECT_SOURCE_DIR}/.cache/cpm" CACHE STRING "" FORCE)
+
 option(CPMUTIL_FORCE_BUNDLED
     "Force bundled packages for all CPM depdendencies" ${BUNDLED_DEFAULT})
 
 option(CPMUTIL_FORCE_SYSTEM
-    "Force system packages for all CPM dependencies (NOT RECOMMENDED)" OFF)
+    "Force system packages for all CPM dependencies" OFF)
 
 set(CPMUTIL_PATCH_DIR "${PROJECT_SOURCE_DIR}/.patch" CACHE STRING
     "Directory containing patches for packages")
 
-cmake_minimum_required(VERSION 3.31)
 include(CPM)
+
+# Rudimentary target architecture detection
+if (NOT DEFINED ARCHITECTURE)
+    string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} processor)
+    if (processor MATCHES "x86|amd64")
+        set(CPMUTIL_AMD64 ON)
+    elseif(processor MATCHES "^aarch64|^arm64|^armv8\.*")
+        set(CPMUTIL_ARM64 ON)
+    elseif(processor MATCHES "riscv")
+        set(CPMUTIL_RISCV64 ON)
+    endif()
+else()
+    # This block exists for compatibility with my own DetectArchitecture.cmake.
+    if (ARCHITECTURE_x86_64)
+        set(CPMUTIL_AMD64 ON)
+    elseif(ARCHITECTURE_arm64)
+        set(CPMUTIL_ARM64 ON)
+    elseif(ARCHITECTURE_riscv64)
+        set(CPMUTIL_RISCV64 ON)
+    endif()
+endif()
 
 # cpmfile parsing
 set(CPMUTIL_JSON_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cpmfile.json")
@@ -73,7 +95,6 @@ function(get_json_element object out member default)
 
     if(out_type STREQUAL "ARRAY")
         string(JSON _len LENGTH "${object}" ${member})
-        # array_to_list("${outvar}" ${_len} outvar)
         set("${out}_LENGTH" "${_len}" PARENT_SCOPE)
     endif()
 
@@ -240,7 +261,7 @@ function(AddJsonPackage)
 
     set(multiValueArgs OPTIONS)
 
-    set(optionArgs MODULE_PATH)
+    set(optionArgs MODULE_PATH DOWNLOAD_ONLY)
 
     cmake_parse_arguments(JSON
         "${optionArgs}"
@@ -571,6 +592,7 @@ function(AddCIPackage)
         "${multiValueArgs}"
         ${ARGN})
 
+    # TODO: use cpm_utils_message
     if(NOT DEFINED PKG_ARGS_VERSION)
         message(FATAL_ERROR "[CPMUtil] VERSION is required")
     endif()
@@ -610,33 +632,47 @@ function(AddCIPackage)
     set(ARTIFACT_REPO ${PKG_ARGS_REPO})
     set(ARTIFACT_PACKAGE ${PKG_ARGS_PACKAGE})
 
-    if(MSVC AND ARCHITECTURE_x86_64)
-        set(pkgname windows-amd64)
-    elseif(MSVC AND ARCHITECTURE_arm64)
-        set(pkgname windows-arm64)
-    elseif(MINGW AND ARCHITECTURE_x86_64)
-        set(pkgname mingw-amd64)
-    elseif(MINGW AND ARCHITECTURE_arm64)
-        set(pkgname mingw-arm64)
-    elseif(ANDROID AND ARCHITECTURE_x86_64)
-        set(pkgname android-x86_64)
-    elseif(ANDROID AND ARCHITECTURE_arm64)
-        set(pkgname android-aarch64)
-    elseif(PLATFORM_SUN)
-        set(pkgname solaris-amd64)
-    elseif(PLATFORM_FREEBSD)
-        set(pkgname freebsd-amd64)
-    elseif(PLATFORM_LINUX AND ARCHITECTURE_x86_64)
-        set(pkgname linux-amd64)
-    elseif(PLATFORM_LINUX AND ARCHITECTURE_arm64)
-        set(pkgname linux-aarch64)
-    elseif(APPLE AND NOT IOS)
-        set(pkgname macos-universal)
-    elseif(IOS AND ARCHITECTURE_arm64)
-        set(pkgname ios-aarch64)
+    # TODO: Use amd64/aarch64 naming for everything.
+    # Also drop macos universal
+
+    if (MSVC)
+        set(platname windows)
+    elseif(MINGW)
+        set(platname mingw)
+    elseif(ANDROID)
+        set(platname android)
+    elseif(LINUX)
+        set(platname linux)
+    elseif(IOS)
+        set(platname ios)
+    elseif(APPLE)
+        set(platname macos)
+    else()
+        cpm_utils_message(WARNING ${PKG_ARGS_NAME}
+            "Unsupported platform ${CMAKE_SYSTEM_NAME} for CI packages")
     endif()
 
-    if (DEFINED pkgname AND NOT "${pkgname}" IN_LIST DISABLED_PLATFORMS)
+    if (APPLE AND NOT IOS)
+        set(archname universal)
+    elseif((WIN32 OR LINUX) AND CPMUTIL_AMD64)
+        set(archname amd64)
+    elseif(WIN32 and CPMUTIL_ARM64)
+        set(archname arm64)
+    elseif((IOS OR LINUX OR ANDROID) AND CPMUTIL_ARM64)
+        set(archname aarch64)
+    elseif(ANDROID AND CPMUTIL_AMD64)
+        set(archname x86_64)
+    else()
+        cpm_utils_message(WARNING ${PKG_ARGS_NAME}
+            "Unsupported platform/arch combo for CI packages")
+    endif()
+
+    if (DEFINED platname AND DEFINED archname)
+        set(pkgname ${platname}-${archname})
+    endif()
+
+    if (DEFINED pkgname
+        AND NOT "${pkgname}" IN_LIST DISABLED_PLATFORMS)
         set(ARTIFACT
             "${ARTIFACT_NAME}-${pkgname}-${ARTIFACT_VERSION}.${ARTIFACT_EXT}")
 
@@ -682,7 +718,6 @@ function(AddQt repo version)
         REPO ${repo}
         DISABLED_PLATFORMS
             android-x86_64 android-aarch64
-            freebsd-amd64 solaris-amd64 openbsd-amd64
         MODULE_PATH)
 
     find_package(Qt6 REQUIRED PATHS ${Qt6_SOURCE_DIR} NO_DEFAULT_PATH)

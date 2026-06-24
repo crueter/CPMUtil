@@ -9,7 +9,7 @@
 
 # re-read json files
 # shellcheck disable=SC2016
-PACKAGES=$(echo "$CPMFILES" | xargs jq -s 'reduce .[] as $item ({}; . * $item)')
+PACKAGES=$(jq -s 'reduce .[] as $item ({}; . * $item)' cpmfile.json)
 export PACKAGES
 
 . "$SCRIPTS"/vars.sh

@@ -17,11 +17,6 @@ jobs:
           mkdir CMakeModules
           mv *.cmake CMakeModules
 
-          for module in DetectPlatform DetectArchitecture; do
-            _url="https://git.crueter.xyz/CMake/Modules/raw/branch/master/$module.cmake"
-            curl -L "$_url" -o "CMakeModules/$module.cmake"
-          done
-
           mkdir pack
           mv docs tools CMakeModules pack
 
