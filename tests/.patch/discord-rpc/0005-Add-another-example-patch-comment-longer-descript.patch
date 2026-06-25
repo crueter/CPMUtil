@@ -1,0 +1,16 @@
+Subject: [PATCH] Add: another example patch comment, longer description this 
+time. It should get cut off, but show the full description in the patch itself. 
+Furthermore, special characters are cut out of the patch name hopefully
+---
+diff -ruN a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2026-06-25 19:42:53.423193601 -0400
++++ b/CMakeLists.txt	2026-06-25 19:42:53.427642464 -0400
+@@ -7,6 +7,8 @@
+ 
+ # Example Patch
+ 
++# Example Patch 2
++
+ # format
+ file(GLOB_RECURSE ALL_SOURCE_FILES
+     examples/*.cpp examples/*.h examples/*.c

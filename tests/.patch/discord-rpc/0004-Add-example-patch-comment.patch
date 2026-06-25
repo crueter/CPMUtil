@@ -1,0 +1,25 @@
+From ea2bc5f22f3f7d9783c366b96ace5daf68b38cbd Mon Sep 17 00:00:00 2001
+From: crueter <crueter@eden-emu.dev>
+Date: Thu, 25 Jun 2026 19:32:34 -0400
+Subject: [PATCH] Add example patch comment
+
+---
+ CMakeLists.txt | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5d12f3d..4173b86 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,6 +5,8 @@ include(GNUInstallDirs)
+ 
+ option(BUILD_EXAMPLES "Build example apps" ON)
+ 
++# Example Patch
++
+ # format
+ file(GLOB_RECURSE ALL_SOURCE_FILES
+     examples/*.cpp examples/*.h examples/*.c
+-- 
+2.54.0
+

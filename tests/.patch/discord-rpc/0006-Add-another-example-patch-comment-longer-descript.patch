@@ -1,0 +1,27 @@
+From 2b5566186d910820bc2c4935cc7c308e52d3ad7e Mon Sep 17 00:00:00 2001
+From: crueter <crueter@eden-emu.dev>
+Date: Thu, 25 Jun 2026 19:43:25 -0400
+Subject: [PATCH] Add: another example patch comment, longer description this
+ time. It should get cut off, but show the full description in the patch
+ itself. Git blah blah blah.
+
+Test.
+---
+ CMakeLists.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 56a70bd..a01eac4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -8,6 +8,7 @@ option(BUILD_EXAMPLES "Build example apps" ON)
+ # Example Patch
+ 
+ # Example Patch 2
++# Example Patch 3
+ 
+ # format
+ file(GLOB_RECURSE ALL_SOURCE_FILES
+-- 
+2.54.0
+

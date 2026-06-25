@@ -22,7 +22,10 @@
         "patches": [
             "0001-cmake-version.patch",
             "0002-no-clang-format.patch",
-            "0003-fix-cpp17.patch"
+            "0003-fix-cpp17.patch",
+            "0004-Add-example-patch-comment.patch",
+            "0005-Add-another-example-patch-comment-longer-descript.patch",
+            "0006-Add-another-example-patch-comment-longer-descript.patch"
         ],
         "repo": "discord/discord-rpc",
         "sha": "963aa9f3e5"
