@@ -9,7 +9,22 @@ else()
     set(BUNDLED_DEFAULT OFF)
 endif()
 
-set(CPM_SOURCE_CACHE "${PROJECT_SOURCE_DIR}/.cache/cpm" CACHE STRING "" FORCE)
+# TODO: Handle nested cpmutil includes
+
+# Root directory detection
+if (CMAKE_SCRIPT_MODE_FILE)
+    # In script mode, default to the current list dir
+    # Or you can specify one yourself
+    if (NOT DEFINED CPMUTIL_ROOT)
+        set(CPMUTIL_ROOT ${CMAKE_CURRENT_LIST_DIR})
+    endif()
+else()
+    # A project exists, we can use its directory
+    set(CPMUTIL_ROOT ${PROJECT_SOURCE_DIR})
+endif()
+
+set(CPM_SOURCE_CACHE "${CPMUTIL_ROOT}/.cache/cpm"
+    CACHE PATH "Directory to download CPM dependencies")
 
 option(CPMUTIL_FORCE_BUNDLED
     "Force bundled packages for all CPM depdendencies" ${BUNDLED_DEFAULT})
@@ -17,13 +32,17 @@ option(CPMUTIL_FORCE_BUNDLED
 option(CPMUTIL_FORCE_SYSTEM
     "Force system packages for all CPM dependencies" OFF)
 
-set(CPMUTIL_PATCH_DIR "${PROJECT_SOURCE_DIR}/.patch" CACHE STRING
+set(CPMUTIL_PATCH_DIR "${CPMUTIL_ROOT}/.patch" CACHE STRING
     "Directory containing patches for packages")
 
 include(CPM)
 
 # Rudimentary target architecture detection
-if (NOT DEFINED ARCHITECTURE)
+# This is in script mode, CI packages will be nonfunctional. TODO
+if (NOT DEFINED CMAKE_SYSTEM_PROCESSOR)
+    message(DEBUG "[CPMUtil] No system architecture found, "
+        "CI packages are nonfunctional")
+elseif (NOT DEFINED ARCHITECTURE)
     string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} processor)
     if (processor MATCHES "x86|amd64")
         set(CPMUTIL_AMD64 ON)
@@ -44,26 +63,31 @@ else()
 endif()
 
 # cpmfile parsing
-set(CPMUTIL_JSON_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cpmfile.json")
+set(CPMUTIL_JSON_FILE "${CPMUTIL_ROOT}/cpmfile.json")
 
 if(EXISTS ${CPMUTIL_JSON_FILE})
     file(READ ${CPMUTIL_JSON_FILE} CPMFILE_CONTENT)
-    if (NOT TARGET cpmfiles)
-        add_custom_target(cpmfiles)
-    endif()
 
-    target_sources(cpmfiles PRIVATE ${CPMUTIL_JSON_FILE})
-    set_property(DIRECTORY APPEND PROPERTY
-        CMAKE_CONFIGURE_DEPENDS
-        "${CPMUTIL_JSON_FILE}")
+    # Script mode doesn't support add_custom_target etc.
+    if (NOT CMAKE_SCRIPT_MODE_FILE)
+        if (NOT TARGET cpmfiles)
+            add_custom_target(cpmfiles)
+        endif()
+
+        target_sources(cpmfiles PRIVATE ${CPMUTIL_JSON_FILE})
+        set_property(DIRECTORY APPEND PROPERTY
+            CMAKE_CONFIGURE_DEPENDS
+            "${CPMUTIL_JSON_FILE}")
+    endif()
 else()
-    message(DEBUG "[CPMUtil] cpmfile ${CPMUTIL_JSON_FILE}"
+    message(DEBUG "[CPMUtil] cpmfile ${CPMUTIL_JSON_FILE} "
         "does not exist, AddJsonPackage will be a no-op")
 endif()
 
 # Utility stuff
-function(cpm_utils_message level name message)
-    message(${level} "[CPMUtil] ${name}: ${message}")
+function(cpm_utils_message level)
+    string(REPLACE ";" " " message "${ARGN}")
+    message(${level} "[CPMUtil] ${message}")
 endfunction()
 
 # propagate a variable to parent scope
@@ -71,6 +95,12 @@ macro(Propagate var)
     set(${var} ${${var}} PARENT_SCOPE)
 endmacro()
 
+# Get cpmfile content
+function(get_cpmfile_content out)
+    set(${out} "${CPMFILE_CONTENT}" PARENT_SCOPE)
+endfunction()
+
+# idk
 function(array_to_list array length out)
     math(EXPR range "${length} - 1")
 
@@ -83,11 +113,19 @@ function(array_to_list array length out)
     set("${out}" "${NEW_LIST}" PARENT_SCOPE)
 endfunction()
 
-function(get_json_element object out member default)
+# json
+function(get_json_element object out member)
+    list(LENGTH ARGN argn_len)
+    if(argn_len GREATER 0)
+        list(GET ARGN 0 default)
+    endif()
+
     string(JSON out_type ERROR_VARIABLE err TYPE "${object}" ${member})
 
     if(err)
-        set("${out}" "${default}" PARENT_SCOPE)
+        if (DEFINED default)
+            set("${out}" "${default}" PARENT_SCOPE)
+        endif()
         return()
     endif()
 
@@ -101,6 +139,13 @@ function(get_json_element object out member default)
     set("${out}" "${outvar}" PARENT_SCOPE)
 endfunction()
 
+# register a package to CPMUtil's global registry
+function(cpmutil_register_package name url version)
+    set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_NAMES ${name})
+    set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_URLS ${url})
+    set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS "${version}")
+endfunction()
+
 # Determine whether or not a package has a viable system candidate.
 function(SystemPackageViable JSON_NAME)
     string(JSON object GET "${CPMFILE_CONTENT}" "${JSON_NAME}")
@@ -108,14 +153,17 @@ function(SystemPackageViable JSON_NAME)
     parse_object(${object})
 
     string(REPLACE " " ";" find_args "${find_args}")
-    if (${package}_FORCE_BUNDLED)
+    if(${package}_FORCE_BUNDLED OR
+        (CPMUTIL_FORCE_BUNDLED
+         AND NOT ${package}_FORCE_SYSTEM
+         AND NOT CPMUTIL_FORCE_SYSTEM))
         set(${package}_FOUND OFF)
     else()
         find_package(${package} ${version} ${find_args} QUIET NO_POLICY_SCOPE)
     endif()
 
-    set(${pkg}_VIABLE ${${package}_FOUND} PARENT_SCOPE)
-    set(${pkg}_PACKAGE ${package} PARENT_SCOPE)
+    set(${JSON_NAME}_VIABLE ${${package}_FOUND} PARENT_SCOPE)
+    set(${JSON_NAME}_PACKAGE ${package} PARENT_SCOPE)
 endfunction()
 
 # Add several packages such that if one is bundled,
@@ -169,16 +217,20 @@ endfunction()
 # json util
 macro(parse_object object)
     get_json_element("${object}" package package ${JSON_NAME})
-    get_json_element("${object}" repo repo "")
+    get_json_element("${object}" repo repo)
     get_json_element("${object}" ci ci OFF)
-    get_json_element("${object}" version version "")
-    get_json_element("${object}" min_version min_version "")
+    get_json_element("${object}" version version)
+    get_json_element("${object}" min_version min_version)
     get_json_element("${object}" git_host git_host "github.com")
+
+    if (NOT version)
+        cpm_utils_message(FATAL_ERROR "${JSON_NAME}: version is required")
+    endif()
 
     if(ci)
         get_json_element("${object}" name name "${JSON_NAME}")
         get_json_element("${object}" extension extension "tar.zst")
-        get_json_element("${object}" raw_disabled disabled_platforms "")
+        get_json_element("${object}" raw_disabled disabled_platforms)
 
         if(raw_disabled)
             array_to_list("${raw_disabled}"
@@ -187,15 +239,16 @@ macro(parse_object object)
             set(disabled_platforms "")
         endif()
     else()
-        get_json_element("${object}" hash hash "")
-        get_json_element("${object}" sha sha "")
-        get_json_element("${object}" url url "")
-        get_json_element("${object}" tag tag "")
-        get_json_element("${object}" artifact artifact "")
-        get_json_element("${object}" source_subdir source_subdir "")
+        # TODO: correct hash if missing
+        get_json_element("${object}" hash hash)
+        get_json_element("${object}" sha sha)
+        get_json_element("${object}" url url)
+        get_json_element("${object}" tag tag)
+        get_json_element("${object}" artifact artifact)
+        get_json_element("${object}" source_subdir source_subdir)
         get_json_element("${object}" bundled bundled "unset")
-        get_json_element("${object}" find_args find_args "")
-        get_json_element("${object}" raw_patches patches "")
+        get_json_element("${object}" find_args find_args)
+        get_json_element("${object}" raw_patches patches)
 
         # okay here comes the fun part: REPLACEMENTS!
         # first: tag gets %VERSION% replaced if applicable,
@@ -215,6 +268,7 @@ macro(parse_object object)
         endif()
 
         # format patchdir
+        unset(patches)
         if(raw_patches)
             math(EXPR range "${raw_patches_LENGTH} - 1")
 
@@ -224,8 +278,9 @@ macro(parse_object object)
                 set(full_patch
                     "${CPMUTIL_PATCH_DIR}/${JSON_NAME}/${_patch}")
                 if(NOT EXISTS ${full_patch})
-                    cpm_utils_message(FATAL_ERROR ${JSON_NAME}
-                        "specifies patch ${full_patch} which does not exist")
+                    cpm_utils_message(FATAL_ERROR
+                        "${JSON_NAME} specifies patch"
+                        "${full_patch} which does not exist")
                 endif()
 
                 list(APPEND patches "${full_patch}")
@@ -234,8 +289,9 @@ macro(parse_object object)
         # end format patchdir
 
         # options
-        get_json_element("${object}" raw_options options "")
+        get_json_element("${object}" raw_options options)
 
+        unset(options)
         if(raw_options)
             array_to_list("${raw_options}" ${raw_options_LENGTH} options)
         endif()
@@ -249,6 +305,29 @@ macro(parse_object object)
         endif()
     endif()
 endmacro()
+
+# Get the JSON object for a key. Outputs to "object"
+function(get_json_object key)
+    if(NOT DEFINED CPMFILE_CONTENT)
+        cpm_utils_message(FATAL_ERROR "${key}: No cpmfile present")
+    endif()
+
+    if(NOT DEFINED key)
+        cpm_utils_message(FATAL_ERROR "No JSON key specified")
+    endif()
+
+    string(JSON object ERROR_VARIABLE
+        err GET "${CPMFILE_CONTENT}" "${key}")
+
+    if(err)
+        cpm_utils_message(FATAL_ERROR "${key} not found in cpmfile\n"
+            "${err}")
+    endif()
+
+    Propagate(object)
+endfunction()
+
+# Get the download URL given the parameters.
 
 # The preferred usage
 function(AddJsonPackage)
@@ -276,25 +355,10 @@ function(AddJsonPackage)
         set(JSON_NAME "${ARGV0}")
     endif()
 
-    if(NOT DEFINED CPMFILE_CONTENT)
-        cpm_utils_message(FATAL_ERROR ${name}
-            "No cpmfile present")
-        return()
-    endif()
-
-    if(NOT DEFINED JSON_NAME)
-        cpm_utils_message(FATAL_ERROR "json package" "No name specified")
-    endif()
-
-    string(JSON object ERROR_VARIABLE
-        err GET "${CPMFILE_CONTENT}" "${JSON_NAME}")
-
-    if(err)
-        cpm_utils_message(FATAL_ERROR ${JSON_NAME} "Not found in cpmfile")
-    endif()
-
+    get_json_object("${JSON_NAME}")
     parse_object(${object})
 
+    unset(EXTRA_ARGS)
     if (JSON_MODULE_PATH)
         list(APPEND EXTRA_ARGS MODULE_PATH)
     endif()
@@ -351,8 +415,8 @@ function(AddJsonPackage)
     Propagate(CMAKE_PREFIX_PATH)
 endfunction()
 
+# Internal function
 function(AddPackage)
-    cpm_set_policies()
     set(EXTRA_ARGS "")
 
     set(oneValueArgs
@@ -386,7 +450,11 @@ function(AddPackage)
         "${ARGN}")
 
     if(NOT DEFINED PKG_ARGS_NAME)
-        cpm_utils_message(FATAL_ERROR "package" "No package name defined")
+        cpm_utils_message(FATAL_ERROR "AddPackage: NAME is required")
+    endif()
+
+    if(NOT DEFINED PKG_ARGS_VERSION)
+        cpm_utils_message(FATAL_ERROR "${PKG_ARGS_NAME}: VERSION is required")
     endif()
 
     set(${PKG_ARGS_NAME}_CUSTOM_DIR "" CACHE STRING
@@ -428,144 +496,142 @@ function(AddPackage)
             endif()
         endif()
     else()
-        cpm_utils_message(FATAL_ERROR ${PKG_ARGS_NAME}
-            "No URL or repository defined")
+        cpm_utils_message(FATAL_ERROR
+            "${PKG_ARGS_NAME}: No URL or repository defined")
     endif()
 
-    cpm_utils_message(DEBUG ${PKG_ARGS_NAME} "Download URL is ${pkg_url}")
+    cpm_utils_message(DEBUG "${PKG_ARGS_NAME} download URL is ${pkg_url}")
 
+    # TODO: maybe singular version/ref that detects sha/tag?
     if(DEFINED PKG_ARGS_SHA)
         string(SUBSTRING ${PKG_ARGS_SHA} 0 4 pkg_key)
-    elseif(DEFINED PKG_ARGS_VERSION)
-        set(pkg_key ${PKG_ARGS_VERSION})
-    elseif(DEFINED PKG_ARGS_TAG)
-        set(pkg_key ${PKG_ARGS_TAG})
-    elseif(DEFINED PKG_ARGS_MIN_VERSION)
-        set(pkg_key ${PKG_ARGS_MIN_VERSION})
     else()
-        cpm_utils_message(FATAL_ERROR ${PKG_ARGS_NAME}
-            "Could not determine cache key")
+        set(pkg_key ${PKG_ARGS_VERSION})
     endif()
 
     if(DEFINED PKG_ARGS_HASH)
         set(pkg_hash "SHA512=${PKG_ARGS_HASH}")
     else()
-        cpm_utils_message(FATAL_ERROR ${PKG_ARGS_NAME}
-            "No hash defined")
+        cpm_utils_message(FATAL_ERROR "${PKG_ARGS_NAME}: No hash defined")
     endif()
-
-    macro(set_precedence local force)
-        set(CPM_USE_LOCAL_PACKAGES ${local})
-        set(CPM_LOCAL_PACKAGES_ONLY ${force})
-    endmacro()
 
     #[[
         Precedence:
-        - package_FORCE_SYSTEM
-        - package_FORCE_BUNDLED
-        - CPMUTIL_FORCE_SYSTEM
-        - CPMUTIL_FORCE_BUNDLED
-        - BUNDLED_PACKAGE
-        - default to allow local
+        - FORCE_BUNDLED_PACKAGE (caller override)
+        - package_FORCE_SYSTEM, package_FORCE_BUNDLED (user option)
+        - CPMUTIL_FORCE_SYSTEM, CPMUTIL_FORCE_BUNDLED (global option)
+        - BUNDLED_PACKAGE (json default)
+        - default to allow system
     ]]
     if(PKG_ARGS_FORCE_BUNDLED_PACKAGE)
-        set_precedence(OFF OFF)
+        set(use_system OFF)
     elseif(${PKG_ARGS_NAME}_FORCE_SYSTEM)
-        set_precedence(ON ON)
+        set(use_system ON)
+        set(force_system ON)
     elseif(${PKG_ARGS_NAME}_FORCE_BUNDLED)
-        set_precedence(OFF OFF)
+        set(use_system OFF)
     elseif(CPMUTIL_FORCE_SYSTEM)
-        set_precedence(ON ON)
+        set(use_system ON)
+        set(force_system ON)
     elseif(CPMUTIL_FORCE_BUNDLED)
-        set_precedence(OFF OFF)
+        set(use_system OFF)
     elseif(DEFINED PKG_ARGS_BUNDLED_PACKAGE AND
         NOT PKG_ARGS_BUNDLED_PACKAGE STREQUAL "unset")
         if(PKG_ARGS_BUNDLED_PACKAGE)
-            set(local OFF)
+            set(use_system OFF)
         else()
-            set(local ON)
+            set(use_system ON)
+        endif()
+    else()
+        set(use_system ON)
+    endif()
+
+    if(use_system)
+        set(find_args ${PKG_ARGS_NAME})
+        if(DEFINED PKG_ARGS_MIN_VERSION)
+            list(APPEND find_args ${PKG_ARGS_MIN_VERSION})
         endif()
 
-        set_precedence(${local} OFF)
-    else()
-        set_precedence(ON OFF)
-    endif()
+        if (DEFINED PKG_ARGS_FIND_PACKAGE_ARGUMENTS)
+            string(REPLACE " " ";"
+                passed_find_args
+                "${PKG_ARGS_FIND_PACKAGE_ARGUMENTS}")
 
-    if(DEFINED PKG_ARGS_MIN_VERSION)
-        list(APPEND EXTRA_ARGS
-            VERSION ${PKG_ARGS_MIN_VERSION})
-    endif()
+            set(find_args "${find_args};${passed_find_args}")
+        endif()
 
-    if (PKG_ARGS_FIND_PACKAGE_ARGUMENTS)
-        list(APPEND EXTRA_ARGS
-            FIND_PACKAGE_ARGUMENTS "${PKG_ARGS_FIND_PACKAGE_ARGUMENTS}")
+        find_package(${find_args} QUIET)
+
+        if(${PKG_ARGS_NAME}_FOUND)
+            if(DEFINED ${PKG_ARGS_NAME}_VERSION)
+                set(sys_ver ${${PKG_ARGS_NAME}_VERSION})
+            else()
+                set(sys_ver ${PKG_ARGS_VERSION})
+            endif()
+
+            message(STATUS
+                "[CPMUtil] Using system package ${PKG_ARGS_NAME}@${sys_ver}")
+
+            CPMRegisterPackage(${PKG_ARGS_NAME} "${sys_ver}")
+
+            cpmutil_register_package(
+                ${PKG_ARGS_NAME}
+                ${pkg_git_url}
+                "${sys_ver} (system)")
+
+            set(${PKG_ARGS_NAME}_ADDED NO PARENT_SCOPE)
+
+            return()
+        endif()
+
+        if(force_system)
+            string(REPLACE ";" " " str_find_args "${find_args}")
+            message(FATAL_ERROR "[CPMUtil] ${PKG_ARGS_NAME} not found via "
+                "find_package(${str_find_args})")
+        endif()
     endif()
 
     if (PKG_ARGS_PATCHES)
-        list(APPEND EXTRA_ARGS
-            PATCHES "${PKG_ARGS_PATCHES}")
+        list(APPEND EXTRA_ARGS PATCHES "${PKG_ARGS_PATCHES}")
     endif()
 
     if (PKG_ARGS_OPTIONS)
-        list(APPEND EXTRA_ARGS
-            OPTIONS "${PKG_ARGS_OPTIONS}")
+        list(APPEND EXTRA_ARGS OPTIONS "${PKG_ARGS_OPTIONS}")
     endif()
 
     if (PKG_ARGS_SOURCE_SUBDIR)
-        list(APPEND EXTRA_ARGS
-            SOURCE_SUBDIR "${PKG_ARGS_SOURCE_SUBDIR}")
+        list(APPEND EXTRA_ARGS SOURCE_SUBDIR "${PKG_ARGS_SOURCE_SUBDIR}")
     endif()
 
     if (PKG_ARGS_DOWNLOAD_ONLY OR PKG_ARGS_MODULE_PATH)
         list(APPEND EXTRA_ARGS DOWNLOAD_ONLY ON)
     endif()
 
+    cpm_utils_message(STATUS
+        "Using bundled package"
+        "${PKG_ARGS_NAME}@${PKG_ARGS_VERSION} (${pkg_key})")
+
     CPMAddPackage(
         NAME ${PKG_ARGS_NAME}
         URL ${pkg_url}
         URL_HASH ${pkg_hash}
         CUSTOM_CACHE_KEY ${pkg_key}
+        VERSION ${PKG_ARGS_VERSION}
 
         EXCLUDE_FROM_ALL ON
 
         ${EXTRA_ARGS}
-
         ${PKG_ARGS_UNPARSED_ARGUMENTS})
 
-    set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_NAMES ${PKG_ARGS_NAME})
-    set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_URLS ${pkg_git_url})
-
-    if(${PKG_ARGS_NAME}_ADDED)
-        if(DEFINED PKG_ARGS_SHA)
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                ${PKG_ARGS_SHA})
-        elseif(DEFINED PKG_ARGS_VERSION)
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                ${PKG_ARGS_VERSION})
-        elseif(DEFINED PKG_ARGS_TAG)
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                ${PKG_ARGS_TAG})
-        elseif(DEFINED PKG_ARGS_MIN_VERSION)
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                ${PKG_ARGS_MIN_VERSION})
-        else()
-            cpm_utils_message(WARNING ${PKG_ARGS_NAME}
-                "Package has no specified sha, tag, or version")
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS "unknown")
-        endif()
+    if(DEFINED PKG_ARGS_SHA)
+        set(ver ${PKG_ARGS_SHA})
     else()
-        if(DEFINED CPM_PACKAGE_${PKG_ARGS_NAME}_VERSION AND NOT
-            "${CPM_PACKAGE_${PKG_ARGS_NAME}_VERSION}" STREQUAL "")
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                "${CPM_PACKAGE_${PKG_ARGS_NAME}_VERSION} (system)")
-        else()
-            set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_SHAS
-                "unknown (system)")
-        endif()
+        set(ver ${PKG_ARGS_VERSION})
     endif()
 
-    # pass stuff to parent scope
-    Propagate(${PKG_ARGS_NAME}_ADDED)
+    cpmutil_register_package(${PKG_ARGS_NAME} ${pkg_git_url} ${ver})
+
+    set(${PKG_ARGS_NAME}_ADDED YES PARENT_SCOPE)
     Propagate(${PKG_ARGS_NAME}_SOURCE_DIR)
     Propagate(${PKG_ARGS_NAME}_BINARY_DIR)
 
@@ -597,18 +663,20 @@ function(AddCIPackage)
         "${multiValueArgs}"
         ${ARGN})
 
-    # TODO: use cpm_utils_message
     if(NOT DEFINED PKG_ARGS_VERSION)
-        message(FATAL_ERROR "[CPMUtil] VERSION is required")
+        cpm_utils_message(FATAL_ERROR "VERSION is required")
     endif()
+
     if(NOT DEFINED PKG_ARGS_NAME)
-        message(FATAL_ERROR "[CPMUtil] NAME is required")
+        cpm_utils_message(FATAL_ERROR "NAME is required")
     endif()
+
     if(NOT DEFINED PKG_ARGS_REPO)
-        message(FATAL_ERROR "[CPMUtil] REPO is required")
+        cpm_utils_message(FATAL_ERROR "REPO is required")
     endif()
+
     if(NOT DEFINED PKG_ARGS_PACKAGE)
-        message(FATAL_ERROR "[CPMUtil] PACKAGE is required")
+        cpm_utils_message(FATAL_ERROR "PACKAGE is required")
     endif()
 
     if(NOT DEFINED PKG_ARGS_CMAKE_FILENAME)
@@ -659,7 +727,7 @@ function(AddCIPackage)
     elseif(APPLE)
         set(platname macos)
     else()
-        cpm_utils_message(WARNING ${PKG_ARGS_NAME}
+        cpm_utils_message(WARNING
             "Unsupported platform ${CMAKE_SYSTEM_NAME} for CI packages")
     endif()
 
@@ -674,7 +742,7 @@ function(AddCIPackage)
     elseif(ANDROID AND CPMUTIL_AMD64)
         set(archname x86_64)
     else()
-        cpm_utils_message(WARNING ${PKG_ARGS_NAME}
+        cpm_utils_message(WARNING
             "Unsupported platform/arch combo for CI packages")
     endif()
 
@@ -692,7 +760,7 @@ function(AddCIPackage)
         endif()
 
         # download sha512sum file
-        # TODO:
+        # TODO: CI pkgs
         set(sha512sum_url
             "https://${ARTIFACT_GIT_HOST}/${ARTIFACT_REPO}/releases/download/v${ARTIFACT_VERSION}/${ARTIFACT}.sha512sum")
         set(sha512sum_file
@@ -715,6 +783,7 @@ function(AddCIPackage)
             NAME ${ARTIFACT_PACKAGE}
             REPO ${ARTIFACT_REPO}
             TAG "v${ARTIFACT_VERSION}"
+            VERSION "${ARTIFACT_VERSION}"
             MIN_VERSION ${ARTIFACT_VERSION}
             ARTIFACT ${ARTIFACT}
             HASH ${sha512sum_hash}

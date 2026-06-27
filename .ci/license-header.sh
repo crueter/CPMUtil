@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # specify full path if dupes may exist
-EXCLUDE_FILES="CPM.cmake"
+EXCLUDE_FILES=""
 
 # license header constants, please change when needed :))))
 YEAR=2026

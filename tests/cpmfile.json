@@ -28,7 +28,8 @@
             "0006-Add-another-example-patch-comment-longer-descript.patch"
         ],
         "repo": "discord/discord-rpc",
-        "sha": "963aa9f3e5"
+        "sha": "963aa9f3e5",
+        "version": "3.5.0"
     },
     "ffmpeg": {
         "artifact": "ffmpeg",
