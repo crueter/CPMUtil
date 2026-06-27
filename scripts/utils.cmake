@@ -142,9 +142,15 @@ endfunction()
 # Download a URL to file, with a sha512 hash
 # And retry 5 times
 function(download url file hash)
+    list(LENGTH ARGN argn_len)
+    if(argn_len GREATER 0)
+        list(GET ARGN 0 hash)
+        set(args EXPECTED_HASH SHA512=${hash})
+    endif()
+
     foreach(i RANGE 5)
         file(DOWNLOAD ${url} ${file}
-            EXPECTED_HASH SHA512=${hash}
+            ${args}
             STATUS ret
             LOG log)
 
@@ -153,13 +159,14 @@ function(download url file hash)
             break()
         endif()
 
-        echo("Download attempt ${i} failed: ${log}\nTrying again in 5 seconds")
+        echo_error("Download attempt ${i} failed: ${log}\n"
+            "Trying again in 5 seconds")
         sleep(5)
     endforeach()
 
     # TODO: use return code or something
     if (NOT code EQUAL 0)
-        echo("Fatal: Download for ${pkg_url} failed after 5 tries")
+        echo_error("Fatal: Download for ${pkg_url} failed after 5 tries")
         cmake_language(EXIT 1)
     endif()
 endfunction()
