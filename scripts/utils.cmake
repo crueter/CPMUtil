@@ -141,7 +141,7 @@ endfunction()
 
 # Download a URL to file, with a sha512 hash
 # And retry 5 times
-function(download url file hash)
+function(download url file)
     list(LENGTH ARGN argn_len)
     if(argn_len GREATER 0)
         list(GET ARGN 0 hash)
@@ -251,4 +251,101 @@ function(format_cpmfile)
     file(COPY_FILE ${tmp_file} ${file})
 
     file(REMOVE_RECURSE ${TMP})
+endfunction()
+
+# Download a package file to the specified path
+# Hash can also be supplied
+function(download_package)
+    get_url()
+    download(${pkg_url} ${ARGN})
+endfunction()
+
+# Fetches a file to the CPM source cache.
+# Requires pkg_cache_abs to be set, and a json key to be parsed (TODO)
+# TODO: Implement into main modules
+function(fetch_package)
+    # paths
+    cmake_path(GET pkg_cache_abs PARENT_PATH pkg_cache_parent)
+    cmake_path(GET pkg_cache_abs FILENAME pkg_cache_name)
+
+    # Temporary directory.
+    mktempdir(TMP)
+
+    # Destination
+    set(file ${TMP}/${pkg_url_filename})
+    set(dir ${TMP}/${pkg_url_filename}-extracted)
+    file(MAKE_DIRECTORY ${dir})
+
+    # Now download
+    download_package(${file} ${hash})
+    echo("Downloaded ${pkg_url_filename} to ${TMP}")
+
+    # Extract the downloaded archive
+    # TODO: Error handling
+    file(ARCHIVE_EXTRACT
+        INPUT ${file}
+        DESTINATION ${dir})
+
+    # TODO: Patches
+
+    # This is copied near-verbatim from ExternalProject/extractfile.cmake.in
+
+    # If there's just one subdirectory and nothing else, move it
+    file(GLOB contents "${dir}/*")
+    list(REMOVE_ITEM contents "${dir}/.DS_Store")
+    list(LENGTH contents n)
+
+    # If n == 1 and contents points to a directory, this is a GitHub-style pack
+    # In this case contents points to the subdir which will get renamed
+    # If not, contents will point to the parent dir which will get renamed
+    if (NOT n EQUAL 1 OR NOT IS_DIRECTORY "${contents}")
+        set(contents "${dir}")
+    endif()
+
+    file(REAL_PATH "${contents}" contents_abs)
+
+    # rename tmp dir
+    set(tmp_renamed "${TMP}/${pkg_cache_name}")
+    file(RENAME "${contents_abs}" "${tmp_renamed}")
+
+    # now copy
+    # TODO: Error handling beyond what cmake does????
+    file(COPY ${tmp_renamed} DESTINATION ${pkg_cache_parent})
+
+    # done! :)
+    echo("Extracted to ${pkg_cache_abs}")
+
+    file(REMOVE_RECURSE ${TMP})
+endfunction()
+
+# Computes expected SHA512 hash of a package
+# Requires already-parsed object. Outputs to "pkg_hash"
+function(package_hash)
+    mktempdir(TMP)
+    get_url()
+
+    set(file ${TMP}/${pkg_url_filename})
+
+    download(${pkg_url} ${file})
+    file(SHA512 ${file} pkg_hash)
+    return(PROPAGATE pkg_hash)
+endfunction()
+
+# Correct the hash of the current package
+function(correct_package_hash)
+    if (NOT DEFINED pkg_hash)
+        package_hash()
+    endif()
+
+    string(JSON new_package SET "${object}" hash "\"${pkg_hash}\"")
+
+    get_cpmfile_content(cpmfile)
+    # TODO: key inputs etc
+    string(JSON new_cpmfile SET "${cpmfile}" discord-rpc "${new_package}")
+
+    get_cpmfile_path(file)
+    file(WRITE ${file} "${new_cpmfile}")
+    format_cpmfile()
+
+    echo("Corrected hash")
 endfunction()
