@@ -24,6 +24,12 @@ macro(echo)
         "${message}")
 endmacro()
 
+# Analogous to POSIX echo, but to stderr
+macro(echo_error)
+    string(REPLACE ";" " " message "${ARGN}")
+    message(NOTICE "${message}")
+endmacro()
+
 # Analogous to POSIX sleep
 macro(sleep time)
     execute_process(COMMAND ${CMAKE_COMMAND} -E sleep ${time})
