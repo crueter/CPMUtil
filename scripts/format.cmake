@@ -10,6 +10,5 @@ include(utils)
 
 parse_key(discord-rpc)
 
-# Guh
-get_url()
-echo(${pkg_url})
+# Format
+format_cpmfile()

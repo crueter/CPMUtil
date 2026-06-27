@@ -100,6 +100,12 @@ function(get_cpmfile_content out)
     set(${out} "${CPMFILE_CONTENT}" PARENT_SCOPE)
 endfunction()
 
+# Get absolute path to cpmfile
+function(get_cpmfile_path out)
+    file(REAL_PATH ${CPMUTIL_JSON_FILE} ${out})
+    return(PROPAGATE ${out})
+endfunction()
+
 # idk
 function(array_to_list array length out)
     math(EXPR range "${length} - 1")
