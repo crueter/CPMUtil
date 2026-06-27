@@ -22,12 +22,18 @@ CPMUtil is a wrapper around CPM that aims to reduce boilerplate and add useful u
   - [Addendum: Module Path Packages](#addendum-module-path-packages)
     - [Example: OpenSSL](#example-openssl)
   - [Addendum: Adding Qt](#addendum-adding-qt)
+  - [Addendum: Package-Specific Overrides](#addendum-package-specific-overrides)
+  - [Addendum: Supply-Chain Security](#addendum-supply-chain-security)
+    - [Checksumming](#checksumming)
+    - [Caching](#caching)
+    - [Immutable Commit Hashes](#immutable-commit-hashes)
 
 ## Global Options
 
-- `CPMUTIL_FORCE_SYSTEM` (default `OFF`): Require all CPM dependencies to use system packages. NOT RECOMMENDED!
-  - You may optionally override this (section)
+- `CPMUTIL_FORCE_SYSTEM` (default `OFF`): Require all CPM dependencies to use system packages.
+  - You may optionally override this for each package: [Package-Specific Overrides](#addendum-package-specific-overrides)
 - `CPMUTIL_FORCE_BUNDLED` (default `ON` on MSVC and Android, `OFF` elsewhere): Require all CPM dependencies to use bundled packages.
+  - You may optionally override this for each package: [Package-Specific Overrides](#addendum-package-specific-overrides)
 - `CPMUTIL_PATCH_DIR` (default `${PROJECT_SOURCE_DIR}/.patch`): Path to patches used in packages. Stored as `<PATCH DIR>/json-package-name/0001-patch-name.patch`, etc.
 - `CPM_SOURCE_CACHE` (default `${PROJECT_SOURCE_DIR}/.cache/cpm`): Where downloaded dependencies get stored.
 
@@ -50,23 +56,25 @@ And may optionally define other properties like:
 For instance:
 
 ```json
-"fmt": {
-    "repo": "fmtlib/fmt",
-    "tag": "12.1.0",
-    "hash": "f0da82c545b01692e9fd30fdfb613dbb8dd9716983dcd0ff19ac2a8d36f74beb5540ef38072fdecc1e34191b3682a8542ecbf3a61ef287dbba0a2679d4e023f2",
-    "min_version": "8",
-    "options": [
-      "FMT_TEST ON"
-    ],
-    "patches": [
-      "0001-disable-reference-copy.patch"
-    ]
+{
+  "fmt": {
+      "repo": "fmtlib/fmt",
+      "tag": "12.1.0",
+      "hash": "f0da8...23f2",
+      "min_version": "8",
+      "options": [
+          "FMT_TEST ON"
+      ],
+      "patches": [
+         "0001-disable-reference-copy.patch"
+      ]
+  }
 }
 ```
 
 Calling `AddJsonPackage(fmt)`:
 
-- Searches for a system package named `fmt` of version 8 or higher
+- Searches for a system package named `fmt` of version 8 or higher (`find_package(fmt 8)`)
 - If found, uses the system package and caches it for future use
 - If not found:
   - Downloads fmt 12.1.0 from the GitHub Archive into `.cache/cpm/fmt/12.1.0`
@@ -93,17 +101,18 @@ These JSON properties are used by standard and CI packages alike.
 
 Normal packages, like the prior `fmt` example, *must* also define:
 
-- `hash`: The SHA512 hash of the downloaded artifact. CPMUtil generally computes this for you.
+- `hash`: The SHA512 hash of the downloaded artifact. CPMUtil generally computes this for you--if not, use `tools/cpmutil.sh package hash <JSON key>`
 - A valid version/URL identifier:
   - `url`: Download from a raw URL.
-  - `sha`: A short or fully-qualified Git commit sha. CPMUtil recommends using 10-character wide shas.
-  - `tag`: A Git tag. See [Versioning](#versioning) for its relation to `version`.
+  - `sha`: A short or fully-qualified Git commit sha. CPMUtil recommends using 10-character wide shas. Requires `repo` to be set.
+  - `tag`: A Git tag. See [Versioning](#versioning) for its relation to `version`. Requires `repo` to be set.
   - `artifact`: A GitHub/Forgejo/Gitea release artifact (requires `tag`). See [Versioning](#versioning) for its relation to `tag` and `version`.
 
 The following are optional to define:
 
 - `source_subdir`: A subdirectory containing the `CMakeLists.txt` to configure a project. Useful for projects like `zstd`.
-- `bundled`: Force the usage of a bundled package. Useful for packages where the system package is broken or nonexistent; e.g. including external fragment shaders.
+- `bundled`: Force the usage of a bundled package. Useful for packages where the system package is broken or nonexistent; e.g. external fragment shaders or data archives.
+  - Note that this will conflict with `CPMUTIL_FORCE_SYSTEM`; for this reason, when using non-library archives, it may be best to allow the user to download and extract the archive manually and specify a local directory to it.
 - `find_args`: Additional arguments passed to `find_package`, e.g. `MODULE`
 - `patches`: Array of in-tree patches to apply to the downloaded source code. See [#Patches](TODO).
 - `options`: Array of CMake options to apply before configuring the package, e.g. `"FMT_TEST ON"`.
@@ -141,7 +150,9 @@ Future updates need only change the `version` identifier, and the artifact and t
 
 ### Patches
 
-CPMUtil is able to apply in-place source tree patches to downloaded packages. These are defined in JSON as an array of names, preferably using `git-format-patch`'s scheme of `<4 digit number>-patch-name.patch`. These are stored in `<CPMUTIL_PATCH_DIR>/<json-key>` (remember that `CPMUTIL_PATCH_DIR` defaults to `$ROOT/.patch`); e.g. `boost` patches would be in `.patch/boost`. Let's say we've made three patches and want to add them; in the Boost JSON definition, we would add:
+CPMUtil is able to apply in-place source tree patches to downloaded packages. These are defined in JSON as an array of names, preferably using `git-format-patch`'s scheme of `<4 digit number>-patch-name.patch`.
+
+They are stored in `<CPMUTIL_PATCH_DIR>/<json-key>` (remember that `CPMUTIL_PATCH_DIR` defaults to `$ROOT/.patch`); e.g. `boost` patches would be in `.patch/boost`. Let's say we've made three patches and want to add them; in the Boost JSON definition, we would add:
 
 ```json
 "patches": [
@@ -151,7 +162,7 @@ CPMUtil is able to apply in-place source tree patches to downloaded packages. Th
 ]
 ```
 
-Then, when Boost is downloaded, it will apply these patches in order to the source tree.
+Then, when Boost is downloaded, it will apply these patches to the source tree in the order they are defined (compound/dependent patches are okay!). Note that when you add, remove, or modify patches, CPMUtil will invalidate your downloaded cache and re-fetch the source.
 
 To learn how to make patches, see [Addendum: Making Patches](#addendum-making-patches).
 
@@ -206,6 +217,8 @@ Within these subdirectories, additional directories are created for each individ
 
 CI packages use `<platform>-<architecture>-<version>` unconditionally.
 
+To see the cache directory for a given package, use `tools/cpmutil.sh package dir <JSON key>`.
+
 ## Addendum: Making Patches
 
 CPMUtil has a dedicated command for making patches. You're recommended to have Git and a command line editor installed, but CPMUtil is able to work without either. To do so, follow these steps, noting your package's JSON key:
@@ -242,7 +255,7 @@ If you are packaging a project that uses CPMUtil, read this!
 
 For sandboxed environments (e.g. Gentoo, nixOS) you must install all dependencies to the system beforehand and set `-DCPMUTIL_FORCE_SYSTEM=ON`. If a dependency is missing, get creating!
 
-Alternatively, if CPMUtil pulls in a package that has no suitable way to install or use a system version, download it separately and pass `-DPackageName_DIR=/path/to/downloaded/dir` (e.g. shaders)
+Alternatively, if CPMUtil pulls in a package that has no suitable way to install or use a system version, download it separately and pass `-D<PackageName>_CUSTOM_DIR=/path/to/downloaded/dir`.
 
 ### Unsandboxed
 
@@ -318,3 +331,32 @@ AddQt(QDash-CI/Qt 6.11.1)
 ```
 
 Then, call `find_package(Qt6 ...)` and it will pull Qt from your downloaded source.
+
+## Addendum: Package-Specific Overrides
+
+There are three variables that CPMUtil defines for each package; these can be overriden by the user or in your CMake. `package` refers either to the `package` value in the JSON, or the package's JSON key if unset (see `package` in [Common Properties](#common-properties)):
+
+- `<package>_FORCE_BUNDLED`: Forcefully bundle the package. This has the same effect as `CPMUTIL_FORCE_BUNDLED`, but only for this package.
+- `<package>_FORCE_BUNDLED`: Forcefully use the system package, failing if it can't be found. This has the same effect as `SYSTEM`, but only for this package.
+- `<package>_CUSTOM_DIR`: Path to an extracted copy of the package. CPMUtil will not attempt to download the package and will instead use the custom directory.
+  - For an example, see [CPMUtil's test case](https://git.crueter.xyz/CMake/CPMUtil/src/branch/master/tests/dir/CMakeLists.txt)
+
+Additionally, in CMake, you can add `FORCE_BUNDLED_PACKAGE ON` to your `AddJsonPackage` command--note that you will have to use the `NAME <key>` syntax as described in [Module Path Packages](#addendum-module-path-packages). This will overrule *all* other overrides, including `CPMUTIL_FORCE_SYSTEM` and `<package>_FORCE_SYSTEM`--use with caution!
+
+## Addendum: Supply-Chain Security
+
+Many package managers suffer from the issue of supply chain security, specifically in regards to silent overwrites of existing packages or archives, e.g. tag sliding and artifact overwriting. CPMUtil has three methods to protect against this.
+
+### Checksumming
+
+CPMUtil *requires* SHA512 checksums for standard packages, and soon will for CI packages as well. If an attacker or compromised account slides a tag, overwrites a release artifact, or otherwise attempts to compromise anything that CPMUtil may fetch, **CPMUtil will not allow the download to continue!** This means that consumers of your build system can **only** download an artifact if the contents of the artifact are *exactly* indentical to what it was when it was configured--any changes at all will be rejected by CPMUtil.
+
+### Caching
+
+CPMUtil uses a mutable cache system, stored by default in `.cache/cpm`. Dependencies are downloaded and extracted here, and can be reused infinitely. This means that, for instance, if a package is compromised but you already have a cached local copy, you won't have to worry at all!
+
+### Immutable Commit Hashes
+
+CPMUtil is capable of using immutable Git commit hashes for its artifacts. These are (barring SHA1 collisions) completely immune to supply chain attacks--that is, unless the entire root server gets compromised to serve infected artifacts/source code; at which point there are much larger issues to worry about. This means that once you set a package to use a Git commit hash for its version, **it will stay the same forever**. This is useful if you want to ensure that consumers are never faced with download failures stemming from hash mismatches in case of compromised artifacts.
+
+Do note, however, that this will render the package incompatible with CPMUtil's built-in auto-updater, so you will have to manually update the package.

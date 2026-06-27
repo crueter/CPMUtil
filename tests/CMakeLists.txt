@@ -11,6 +11,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include(CPMUtil)
 
 # add_subdirectory(qt)
-# add_subdirectory(dir)
+add_subdirectory(dir)
 # add_subdirectory(ffmpeg)
-add_subdirectory(patch)
+# add_subdirectory(patch)
