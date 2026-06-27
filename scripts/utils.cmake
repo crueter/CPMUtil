@@ -72,7 +72,7 @@ function(mktempdir out)
         return()
     endif()
 
-    echo("Fatal: Could not create temporary directory. "
+    echo_error("Fatal: Could not create temporary directory. "
         "Check write permissions to the current directory")
     cmake_language(EXIT 1)
 endfunction()
@@ -230,7 +230,7 @@ function(format_cpmfile)
                 set(command ${JSONPP_EXECUTABLE} -f json -t json -json_opt
                     "${json_opts_str}")
             else()
-                echo("Fatal: could not find one of jq, Python, or perl"
+                echo_error("Fatal: could not find one of jq, Python, or perl"
                     "(json_pp). Install one of these packages to use"
                     "CPMUtil's tooling. If they ARE installed, your"
                     "CMake installation is broken.")

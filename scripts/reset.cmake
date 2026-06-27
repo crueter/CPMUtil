@@ -25,8 +25,8 @@ cmake_path(GET pkg_cache_abs PARENT_PATH pkg_cache_parent)
 cmake_path(GET pkg_cache_abs FILENAME pkg_cache_name)
 
 if (EXISTS ${pkg_cache_abs})
-    echo("Directory ${pkg_cache_abs} already exists")
-    cmake_language(EXIT 0)
+    file(REMOVE_RECURSE ${pkg_cache_abs})
+    echo("Removed ${pkg_cache_abs}")
 endif()
 
 # Temporary directory.
