@@ -158,19 +158,80 @@ function(download url file hash)
     endif()
 endfunction()
 
-# Format the cpmfile. Requires jq
+# Wrapper around find_program that works with Git for Windows
+macro(cpm_find_program)
+    # Windows needs additional paths for some utilities.
+    if (CMAKE_HOST_WIN32)
+        find_package(Git QUIET)
+        if(GIT_EXECUTABLE)
+            # Search within the Git for Windows paths.
+            get_filename_component(extra_search_path
+                ${GIT_EXECUTABLE} DIRECTORY)
+            get_filename_component(extra_search_path_1up
+                ${extra_search_path} DIRECTORY)
+            get_filename_component(extra_search_path_2up
+                ${extra_search_path_1up} DIRECTORY)
+
+            set(base_hints "${extra_search_path_1up}/usr/bin"
+                "${extra_search_path_2up}/usr/bin")
+
+            # Also add core_perl to the paths, for perl commands like json_pp
+            set(hints "")
+            foreach(hint ${base_hints})
+                list(APPEND hints
+                    "${hint}"
+                    "${hint}/core_perl")
+            endforeach()
+
+            find_program(${ARGN} HINTS ${hints})
+            return()
+        endif()
+
+        # If no Git is found, continue as normal
+    endif()
+
+    find_program(${ARGN})
+endmacro()
+
+# Format the cpmfile. Requires one of: jq, python, perl
+# If you don't have any of those, sorry not sorry.
+# Maybe I should make a shell-based alternative.
 function(format_cpmfile)
-    find_program(JQ_EXECUTABLE jq)
-    if (NOT JQ_EXECUTABLE)
-        echo("Warning: jq not found, JSON formatting unavailable")
-        return()
+    # jq is the preferred formatter since it's the fastest
+    cpm_find_program(JQ_EXECUTABLE jq)
+    if (JQ_EXECUTABLE)
+        set(command ${JQ_EXECUTABLE} --indent 4 -S .)
+    else()
+        # Python is simple and works
+        find_package(Python 3.5 COMPONENTS Interpreter QUIET)
+        if (Python_FOUND)
+            set(command ${Python_EXECUTABLE} -m json.tool
+                --indent 4 --sort-keys)
+        else()
+            # json_pp (part of perl) also works well
+            cpm_find_program(JSONPP_EXECUTABLE json_pp)
+            if (JSONPP_EXECUTABLE)
+                set(json_opts "indent" "indent_length=4" "canonical"
+                    "space_after=1" "space_before=0")
+                string(JOIN "," json_opts_str ${json_opts})
+                set(command ${JSONPP_EXECUTABLE} -f json -t json -json_opt
+                    "${json_opts_str}")
+            else()
+                echo("Fatal: could not find one of jq, Python, or perl"
+                    "(json_pp). Install one of these packages to use"
+                    "CPMUtil's tooling. If they ARE installed, your"
+                    "CMake installation is broken.")
+                cmake_language(EXIT 1)
+            endif()
+        endif()
     endif()
 
     get_cpmfile_path(file)
     mktempdir(TMP)
     set(tmp_file ${TMP}/cpmfile.json)
 
-    execute_process(COMMAND ${JQ_EXECUTABLE} --indent 4 -S . ${file}
+    execute_process(COMMAND ${command}
+        INPUT_FILE ${file}
         OUTPUT_FILE ${tmp_file})
 
     # TODO: error handling, mv, cp?
