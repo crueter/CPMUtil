@@ -59,7 +59,7 @@ For instance:
 {
   "fmt": {
       "repo": "fmtlib/fmt",
-      "tag": "12.1.0",
+      "version": "12.1.0",
       "hash": "f0da8...23f2",
       "min_version": "8",
       "options": [
@@ -93,8 +93,9 @@ These JSON properties are used by standard and CI packages alike.
 - `package`: The package name used by `find_package` to check for the existence of a system package.
   - If unset, defaults to the JSON key
 - `repo`: The Git repository the package is stored in, if applicable.
-- `version`: The version of the package to download. This is required.
-- `min_version`: The minimum required version of the package, if a system package is desired.
+- `version`: The version of the package. This is required.
+  - Generally, this should be a 10-wide Git commit hash or Git tag.
+  - Tags must be fully qualified and include prefixes and suffixes, e.g. `boost-1.88.0`
 - `git_host`: The Git host the package is stored in, if applicable. Defaults to `github.com`.
 
 ## Standard Packages
@@ -102,11 +103,14 @@ These JSON properties are used by standard and CI packages alike.
 Normal packages, like the prior `fmt` example, *must* also define:
 
 - `hash`: The SHA512 hash of the downloaded artifact. CPMUtil generally computes this for you--if not, use `tools/cpmutil.sh package hash <JSON key>`
-- A valid version/URL identifier:
-  - `url`: Download from a raw URL.
-  - `sha`: A short or fully-qualified Git commit sha. CPMUtil recommends using 10-character wide shas. Requires `repo` to be set.
-  - `tag`: A Git tag. See [Versioning](#versioning) for its relation to `version`. Requires `repo` to be set.
-  - `artifact`: A GitHub/Forgejo/Gitea release artifact (requires `tag`). See [Versioning](#versioning) for its relation to `tag` and `version`.
+- `min_version`: The minimum required version of the package, if a system package is desired.
+
+And may optionally define:
+
+- `url`: Download from a raw URL.
+- `artifact`: A GitHub/Forgejo/Gitea release artifact. Requires `repo` to be set and valid.
+
+See [Versioning](#versioning) for version/artifact information.
 
 The following are optional to define:
 
@@ -119,34 +123,25 @@ The following are optional to define:
 
 ### Versioning
 
-When using tags or artifacts, it may be cumbersome to repeat the version multiple times; especially if it's constantly changing. For this purpose, `tag` and `artifact` both support basic version text replacement.
+When fetching from a Git repository, there are generally three methods of versioning:
 
-`tag` can use `%VERSION%` to have its version replaced with the `version` defined for the package, e.g. for OpenSSL; when downloading, `tag` will evaluate to `openssl-3.6.2`:
+- Commit hashes
+- Git tags
+- Release artifacts
 
-```json
-"openssl": {
-    "repo": "openssl/openssl",
-    "version": "3.6.2",
-    "tag": "openssl-%VERSION%"
-}
-```
+When `repo` is set, `version` field can be set to any commitish value, including commit hashes or Git tags. In the case of artifacts, `version` must be a Git tag, and `artifact` must be set to a release artifact attached to that tag. Many repositories intentionally version the filenames of their release artifacts; for this purpose, CPMUtil allows you to implant the version number into the artifact name. To do so, add `%VERSION%` to the artifact name; CPMUtil will then automatically replace `%VERSION%` with the `version` field. This means that when changing versions, you only need to update the version, not the artifact!
 
-`artifact` also supports `%VERSION%` replacement, and can also use `%TAG%` to be replaced by the computed tag. Take this Boost definition:
+Take Boost as an example. The artifact for Boost 1.90.0 is `boost-1.90.0-cmake.tar.xz`, and the tag is `boost-1.90.0`. Thus, we can set the artifact to `%VERSION%-cmake.tar.xz`:
 
 ```json
 "boost": {
     "repo": "boostorg/boost",
-    "tag": "boost-%VERSION%",
-    "version": "1.90.0"
+    "version": "boost-1.90.0",
+    "artifact": "%VERSION%-cmake.tar.xz"
 }
 ```
 
-Boost's artifact for this version is stored in `boost-1.90.0-cmake.tar.xz`. Notice that the computed tag,`boost-1.90.0`, is in the name of the artifact! Thus, `artifact` can be either:
-
-- `boost-%VERSION%-cmake.tar.xz`
-- Or, even simpler: `%TAG%-cmake.tar.xz`
-
-Future updates need only change the `version` identifier, and the artifact and tag will automatically be updated!
+The artifact will then evaluate as `boost-1.90.0-cmake.tar.xz`.
 
 ### Patches
 
@@ -210,12 +205,7 @@ If you're only concerned with basic usage, you can stop reading. For more advanc
 
 CPMUtil stores downloaded packages within `.cache/cpm` by default (see `CPM_SOURCE_CACHE`). Subdirectories stored within are lowercase representations of the `find_package` name for the package; for instance, a `vulkan-headers` definition with `package: "VulkanHeaders"` would be stored in `.cache/cpm/vulkanheaders`.
 
-Within these subdirectories, additional directories are created for each individual version:
-
-- A four-character shorthand of `sha`, if defined
-- If `sha` is not defined, the fully qualified `version` is used
-
-CI packages use `<platform>-<architecture>-<version>` unconditionally.
+Within these subdirectories, additional directories are created for each individual version, corresponding directly to their `version` field. CI packages use `<platform>-<architecture>-<version>` unconditionally.
 
 To see the cache directory for a given package, use `tools/cpmutil.sh package dir <JSON key>`.
 
@@ -276,14 +266,12 @@ Using the prior Vulkan example:
     "repo": "KhronosGroup/Vulkan-Headers",
     "package": "VulkanHeaders",
     "min_version": "1.4.317",
-    "version": "1.4.342",
-    "tag": "v%VERSION%"
+    "version": "v1.4.342"
 },
 "vulkan-utility-libraries": {
     "repo": "KhronosGroup/Vulkan-Utility-Libraries",
     "package": "VulkanUtilityLibraries",
-    "version": "1.4.342",
-    "tag": "v%VERSION%"
+    "version": "v1.4.342"
 }
 ```
 

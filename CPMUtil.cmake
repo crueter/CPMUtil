@@ -241,30 +241,17 @@ macro(parse_object object)
     else()
         # TODO: correct hash if missing
         get_json_element("${object}" hash hash)
-        get_json_element("${object}" sha sha)
         get_json_element("${object}" url url)
-        get_json_element("${object}" tag tag)
         get_json_element("${object}" artifact artifact)
         get_json_element("${object}" source_subdir source_subdir)
         get_json_element("${object}" bundled bundled "unset")
         get_json_element("${object}" find_args find_args)
         get_json_element("${object}" raw_patches patches)
 
-        # okay here comes the fun part: REPLACEMENTS!
-        # first: tag gets %VERSION% replaced if applicable,
-        #   with version
-        # second: artifact gets %VERSION% and %TAG% replaced
-        #   accordingly (same rules for VERSION)
-
-        # TODO(crueter): fmt module for cmake
-        if(tag)
-            string(REPLACE "%VERSION%" "${version}" tag ${tag})
-        endif()
-
-        if(artifact)
+        # artifact text replacement
+        if (artifact)
             string(REPLACE "%VERSION%" "${version}"
                 artifact ${artifact})
-            string(REPLACE "%TAG%" "${tag}" artifact ${artifact})
         endif()
 
         # format patchdir
@@ -374,7 +361,6 @@ function(AddJsonPackage)
             REPO "${repo}"
             PACKAGE "${package}"
             EXTENSION "${extension}"
-            MIN_VERSION "${min_version}"
             DISABLED_PLATFORMS "${disabled_platforms}"
 
             GIT_HOST "${git_host}"
@@ -391,7 +377,6 @@ function(AddJsonPackage)
             MIN_VERSION "${min_version}"
             URL "${url}"
             HASH "${hash}"
-            SHA "${sha}"
             REPO "${repo}"
             PATCHES "${patches}"
             OPTIONS "${options}"
@@ -403,7 +388,6 @@ function(AddJsonPackage)
             GIT_HOST "${git_host}"
 
             ARTIFACT "${artifact}"
-            TAG "${tag}"
 
             ${EXTRA_ARGS})
     endif()
@@ -421,14 +405,12 @@ function(AddPackage)
 
     set(oneValueArgs
         NAME
-        VERSION
         MIN_VERSION
         GIT_HOST
 
         REPO
-        TAG
+        VERSION
         ARTIFACT
-        SHA
 
         HASH
 
@@ -482,18 +464,12 @@ function(AddPackage)
     elseif(DEFINED PKG_ARGS_REPO)
         set(pkg_git_url https://${git_host}/${PKG_ARGS_REPO})
 
-        if(DEFINED PKG_ARGS_SHA)
-            set(pkg_url "${pkg_git_url}/archive/${PKG_ARGS_SHA}.tar.gz")
-        elseif(DEFINED PKG_ARGS_TAG)
-            set(tag "${PKG_ARGS_TAG}")
-            if(DEFINED PKG_ARGS_ARTIFACT)
-                set(artifact "${PKG_ARGS_ARTIFACT}")
-                set(pkg_url
-                    "${pkg_git_url}/releases/download/${tag}/${artifact}")
-            else()
-                set(pkg_url
-                    "${pkg_git_url}/archive/refs/tags/${tag}.tar.gz")
-            endif()
+        if(DEFINED PKG_ARGS_ARTIFACT)
+            set(artifact "${PKG_ARGS_ARTIFACT}")
+            set(pkg_url
+                "${pkg_git_url}/releases/download/${PKG_ARGS_VERSION}/${artifact}")
+        else()
+            set(pkg_url "${pkg_git_url}/archive/${PKG_ARGS_VERSION}.tar.gz")
         endif()
     else()
         cpm_utils_message(FATAL_ERROR
@@ -501,13 +477,6 @@ function(AddPackage)
     endif()
 
     cpm_utils_message(DEBUG "${PKG_ARGS_NAME} download URL is ${pkg_url}")
-
-    # TODO: maybe singular version/ref that detects sha/tag?
-    if(DEFINED PKG_ARGS_SHA)
-        string(SUBSTRING ${PKG_ARGS_SHA} 0 4 pkg_key)
-    else()
-        set(pkg_key ${PKG_ARGS_VERSION})
-    endif()
 
     if(DEFINED PKG_ARGS_HASH)
         set(pkg_hash "SHA512=${PKG_ARGS_HASH}")
@@ -609,13 +578,12 @@ function(AddPackage)
 
     cpm_utils_message(STATUS
         "Using bundled package"
-        "${PKG_ARGS_NAME}@${PKG_ARGS_VERSION} (${pkg_key})")
+        "${PKG_ARGS_NAME}@${PKG_ARGS_VERSION}")
 
     CPMAddPackage(
         NAME ${PKG_ARGS_NAME}
         URL ${pkg_url}
         URL_HASH ${pkg_hash}
-        CUSTOM_CACHE_KEY ${pkg_key}
         VERSION ${PKG_ARGS_VERSION}
 
         EXCLUDE_FROM_ALL ON
@@ -679,12 +647,6 @@ function(AddCIPackage)
         cpm_utils_message(FATAL_ERROR "PACKAGE is required")
     endif()
 
-    if(NOT DEFINED PKG_ARGS_CMAKE_FILENAME)
-        set(ARTIFACT_CMAKE ${PKG_ARGS_NAME})
-    else()
-        set(ARTIFACT_CMAKE ${PKG_ARGS_CMAKE_FILENAME})
-    endif()
-
     if(NOT DEFINED PKG_ARGS_EXTENSION)
         set(ARTIFACT_EXT "tar.zst")
     else()
@@ -695,10 +657,6 @@ function(AddCIPackage)
         set(ARTIFACT_GIT_HOST "github.com")
     else()
         set(ARTIFACT_GIT_HOST "${PKG_ARGS_GIT_HOST}")
-    endif()
-
-    if(DEFINED PKG_ARGS_MIN_VERSION)
-        set(ARTIFACT_MIN_VERSION ${PKG_ARGS_MIN_VERSION})
     endif()
 
     if(DEFINED PKG_ARGS_DISABLED_PLATFORMS)
@@ -782,9 +740,7 @@ function(AddCIPackage)
         AddPackage(
             NAME ${ARTIFACT_PACKAGE}
             REPO ${ARTIFACT_REPO}
-            TAG "v${ARTIFACT_VERSION}"
-            VERSION "${ARTIFACT_VERSION}"
-            MIN_VERSION ${ARTIFACT_VERSION}
+            VERSION "v${ARTIFACT_VERSION}"
             ARTIFACT ${ARTIFACT}
             HASH ${sha512sum_hash}
             FORCE_BUNDLED_PACKAGE ON
@@ -794,7 +750,8 @@ function(AddCIPackage)
         Propagate(${ARTIFACT_PACKAGE}_SOURCE_DIR)
         Propagate(CMAKE_PREFIX_PATH)
     else()
-        find_package(${ARTIFACT_PACKAGE} ${ARTIFACT_MIN_VERSION} REQUIRED)
+        cpm_utils_message(FATAL_ERROR "${ARTIFACT_NAME}:"
+            "Unsupported platform ${pkgname} for CI package")
     endif()
 endfunction()
 
@@ -812,7 +769,6 @@ function(AddQt repo version)
         NAME qt
         PACKAGE Qt6
         VERSION ${version}
-        MIN_VERSION 6
         REPO ${repo}
         DISABLED_PLATFORMS
             android-x86_64 android-aarch64

@@ -232,7 +232,6 @@ function(CPMAddPackage)
       SYSTEM
       EXCLUDE_FROM_ALL
       SOURCE_SUBDIR
-      CUSTOM_CACHE_KEY
       URL_HASH)
 
   set(multiValueArgs URL OPTIONS PATCHES)
@@ -256,10 +255,6 @@ function(CPMAddPackage)
 
   if(NOT DEFINED CPM_ARGS_VERSION AND NOT DEFINED CPM_ARGS_SOURCE_DIR)
     message(FATAL_ERROR "${CPM_INDENT} VERSION is required")
-  endif()
-
-  if(NOT DEFINED CPM_ARGS_CUSTOM_CACHE_KEY AND NOT DEFINED CPM_ARGS_SOURCE_DIR)
-    message(FATAL_ERROR "${CPM_INDENT} CUSTOM_CACHE_KEY is required")
   endif()
 
   cpm_check_if_package_already_added(${CPM_ARGS_NAME} "${CPM_ARGS_VERSION}")
@@ -319,7 +314,7 @@ function(CPMAddPackage)
     endif()
   else()
     set(download_directory
-        ${CPM_SOURCE_CACHE}/${lower_case_name}/${CPM_ARGS_CUSTOM_CACHE_KEY})
+        ${CPM_SOURCE_CACHE}/${lower_case_name}/${CPM_ARGS_VERSION})
     get_filename_component(download_directory ${download_directory} ABSOLUTE)
     set(fetch_source_dir ${download_directory})
   endif()

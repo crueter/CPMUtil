@@ -29,18 +29,13 @@ export GIT_HOST="null"
 export EXT="null"
 export NAME="null"
 export DISABLED="null"
-export TAG="null"
 export ARTIFACT="null"
-export SHA="null"
 export VERSION="null"
 export MIN_VERSION="null"
 export DOWNLOAD="null"
 export URL="null"
 export KEY="null"
 export HASH="null"
-export ORIGINAL_TAG="null"
-export HAS_REPLACE="null"
-export VERSION_REPLACE="null"
 
 ########
 # Meta #
@@ -94,28 +89,10 @@ fi
 # Versioning #
 ##############
 
-TAG=$(value "tag")
-ARTIFACT=$(value "artifact")
-SHA=$(value "sha")
+ARTIFACT=$(value "artifact" | sed "s/%VERSION%/$VERSION/g")
 
-if echo "$TAG" | grep -e "%VERSION%" >/dev/null; then
-	HAS_REPLACE=true
-else
-	HAS_REPLACE=false
-fi
-
-ORIGINAL_TAG="$TAG"
-
-TAG=$(echo "$TAG" | sed "s/%VERSION%/$VERSION/g")
-ARTIFACT=$(echo "$ARTIFACT" | sed "s/%VERSION%/$VERSION/g")
-ARTIFACT=$(echo "$ARTIFACT" | sed "s/%TAG%/$TAG/g")
-
-export TAG
 export ARTIFACT
-export SHA
 export VERSION
-export ORIGINAL_TAG
-export HAS_REPLACE
 
 ###############
 # URL Parsing #
@@ -131,18 +108,7 @@ export DOWNLOAD
 # Key Parsing #
 ###############
 
-if [ "$SHA" != null ]; then
-	KEY=$(echo "$SHA" | cut -c1-4)
-elif [ "$VERSION" != null ]; then
-	KEY="$VERSION"
-elif [ "$TAG" != null ]; then
-	KEY="$TAG"
-else
-	echo "!! No valid key could be determined for $PACKAGE_NAME. Must define one of: sha, tag, version"
-	exit 1
-fi
-
-export KEY
+export KEY="$VERSION"
 
 ################
 # Hash Parsing #
