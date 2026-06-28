@@ -12,8 +12,8 @@ include(CPMUtil)
 
 # Parse the JSON object for a given key.
 macro(parse_key key)
-    get_json_object(discord-rpc)
-    set(JSON_NAME discord-rpc)
+    get_json_object(${key})
+    set(JSON_NAME ${key})
     parse_object(${object})
 endmacro()
 
@@ -89,17 +89,11 @@ function(get_url)
     elseif(DEFINED repo)
         set(pkg_git_url https://${git_host}/${repo})
 
-        if(DEFINED sha)
-            set(pkg_url "${pkg_git_url}/archive/${sha}.tar.gz")
-        elseif(DEFINED tag)
-            set(tag "${tags}")
-            if(DEFINED artifact)
-                set(pkg_url
-                    "${pkg_git_url}/releases/download/${tag}/${artifact}")
-            else()
-                set(pkg_url
-                    "${pkg_git_url}/archive/refs/tags/${tag}.tar.gz")
-            endif()
+        if(DEFINED artifact)
+            set(pkg_url
+                "${pkg_git_url}/releases/download/${version}/${artifact}")
+        else()
+            set(pkg_url "${pkg_git_url}/archive/${version}.tar.gz")
         endif()
     else()
         cpm_utils_message(FATAL_ERROR
@@ -109,31 +103,15 @@ function(get_url)
     return(PROPAGATE pkg_url)
 endfunction()
 
-# Get a package's cache key. Outputs to "pkg_key"
-# Requires an object to already be parsed (TODO)
-function(get_cache_key)
-    if(DEFINED sha)
-        string(SUBSTRING ${sha} 0 4 pkg_key)
-    else()
-        set(pkg_key ${version})
-    endif()
-    return(PROPAGATE pkg_key)
-endfunction()
-
-# Get a package's cache path. Outputs to "pkg_cache_path"
-# Requires an object to already be parsed (TODO)
-function(get_cache_path)
-    if (NOT DEFINED pkg_key)
-        get_cache_key()
-    endif()
-
+# Get a package's cache path.
+function(get_cache_path package version out)
     # Construct cache path
     string(TOLOWER ${package} lower_name)
 
     # TODO: Figure out a sln to CPM_SOURCE_CACHE; CPMConfig.cmake?
-    set(pkg_cache_path ${CPM_SOURCE_CACHE}/${lower_name}/${pkg_key})
+    set(${out} ${CPM_SOURCE_CACHE}/${lower_name}/${version})
 
-    return(PROPAGATE pkg_cache_path)
+    return(PROPAGATE ${out})
 endfunction()
 
 # Download a URL to file, with a sha512 hash
@@ -319,26 +297,28 @@ function(get_package_hash out)
     mktempdir(TMP)
     get_url()
 
-    set(file ${TMP}/${pkg_url_filename})
+    get_filename_component(filename ${pkg_url} NAME)
+    set(file ${TMP}/${filename})
 
     download(${pkg_url} ${file})
     file(SHA512 ${file} ${out})
     return(PROPAGATE ${out})
 endfunction()
 
-# Correct the hash of the current package
-function(set_package_hash object key hash)
-    string(JSON new_package SET "${object}" hash "\"${hash}\"")
+# Update hash and version of a package
+function(modify_package object key version hash)
+    string(JSON new_object SET "${object}" hash "\"${hash}\"")
+    string(JSON new_object SET "${new_object}" version "\"${version}\"")
 
     get_cpmfile_content(cpmfile)
     # TODO: key inputs etc
-    string(JSON new_cpmfile SET "${cpmfile}" "${key}" "${new_package}")
+    string(JSON new_cpmfile SET "${cpmfile}" "${key}" "${new_object}")
 
     get_cpmfile_path(file)
     file(WRITE ${file} "${new_cpmfile}")
     format_cpmfile()
 
-    echo("Set hash of ${key}")
+    echo("Updated ${key}")
 endfunction()
 
 # compute a hash of all patch file contents

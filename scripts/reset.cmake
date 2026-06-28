@@ -15,12 +15,12 @@ parse_key(${key})
 # TODO: Handle CI packages
 
 # Get cache path.
-get_cache_path()
+get_cache_path(${package} ${version} cache_path)
 
 # patch keys
 compute_patch_key("${patches}" patch_key)
 
-file(REMOVE_RECURSE ${pkg_cache_path})
+file(REMOVE_RECURSE ${cache_path})
 
 get_url()
-fetch_package("${pkg_url}" "${hash}" "${pkg_cache_path}" "${patch_key}")
+fetch_package("${pkg_url}" "${hash}" "${cache_path}" "${patch_key}")

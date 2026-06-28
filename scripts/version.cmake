@@ -8,10 +8,14 @@ cmake_minimum_required(VERSION 3.31)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 include(utils)
 
-parse_key(discord-rpc)
+set(key carboxyl)
+parse_key("${key}")
 
-# Guh.
-get_cache_path(${package} ${version} cache_path)
+if (NOT NEW_VERSION)
+    echo_error("You must provide a version")
+endif()
 
-file(REAL_PATH ${cache_path} abs_path)
-echo("${abs_path}")
+set(version ${NEW_VERSION})
+
+get_package_hash(pkg_hash)
+modify_package("${object}" "${key}" "${version}" "${pkg_hash}")
