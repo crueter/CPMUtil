@@ -8,7 +8,8 @@ cmake_minimum_required(VERSION 3.31)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 include(utils)
 
-parse_key(discord-rpc)
+set(key discord-rpc)
+parse_key(${key})
 
 # TODO: This is a near exact copy of fetch.cmake
 # TODO: Handle CI packages
@@ -16,13 +17,17 @@ parse_key(discord-rpc)
 # Get cache path.
 get_cache_path()
 
-# Early exit if cache path already exists and is nonempty
-# TODO: patch key
-cmake_path(ABSOLUTE_PATH pkg_cache_path NORMALIZE OUTPUT_VARIABLE pkg_cache_abs)
+# patch keys
+compute_patch_key("${patches}" patch_key)
+needs_refetch(${pkg_cache_path} "${patch_key}" CACHE_INVALID)
 
-if (EXISTS ${pkg_cache_abs})
-    echo("Directory ${pkg_cache_abs} already exists")
+if (CACHE_INVALID)
+    echo("Cache for ${key} is missing or invalid")
+    file(REMOVE_RECURSE ${pkg_cache_path})
+else()
+    echo("Cache for ${key} is up-to-date")
     cmake_language(EXIT 0)
 endif()
 
-fetch_package()
+get_url()
+fetch_package("${pkg_url}" "${hash}" "${pkg_cache_path}" "${patch_key}")

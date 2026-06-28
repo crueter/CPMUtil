@@ -92,24 +92,6 @@ endif()
 
 include(FetchContent)
 
-# compute a hash of all patch file contents
-# if there are no patches, returns none
-function(cpm_compute_patch_key patches patch_key_out)
-  if(NOT patches)
-    set("${patch_key_out}" "none" PARENT_SCOPE)
-    return()
-  endif()
-
-  set(combined "")
-  foreach(PATCH ${patches})
-    file(READ "${PATCH}" contents)
-    string(APPEND combined "${contents}")
-  endforeach()
-
-  string(SHA512 key "${combined}")
-  set("${patch_key_out}" "${key}" PARENT_SCOPE)
-endfunction()
-
 # Create a custom FindXXX.cmake module for a CPM package.
 # This prevents `find_package(NAME)` from finding the system library
 function(cpm_create_module_file Name)
@@ -320,7 +302,7 @@ function(CPMAddPackage)
   endif()
 
   # compute expected patch key
-  cpm_compute_patch_key("${CPM_ARGS_PATCHES}" expected_patch_key)
+  compute_patch_key("${CPM_ARGS_PATCHES}" expected_patch_key)
   set(patch_key_file "${download_directory}/.cpm_patch_key")
 
   # source is already fetched and verified

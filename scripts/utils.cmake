@@ -78,7 +78,6 @@ function(mktempdir out)
 endfunction()
 
 # Get a package's effective URL. Outputs to "pkg_url"
-# The URL's filename is output to "pkg_url_filename"
 # Requires an object to already be parsed (TODO)
 function(get_url)
     if(NOT DEFINED git_host)
@@ -107,9 +106,7 @@ function(get_url)
             "${package}: No URL or repository defined")
     endif()
 
-    get_filename_component(pkg_url_filename ${pkg_url} NAME)
-
-    return(PROPAGATE pkg_url pkg_url_filename)
+    return(PROPAGATE pkg_url)
 endfunction()
 
 # Get a package's cache key. Outputs to "pkg_key"
@@ -253,35 +250,24 @@ function(format_cpmfile)
     file(REMOVE_RECURSE ${TMP})
 endfunction()
 
-# Download a package file to the specified path
-# Hash can also be supplied
-function(download_package)
-    get_url()
-    download(${pkg_url} ${ARGN})
-endfunction()
-
 # Fetches a file to the CPM source cache.
-# Requires pkg_cache_abs to be set, and a json key to be parsed (TODO)
-# TODO: Implement into main modules
-function(fetch_package)
-    # paths
-    cmake_path(GET pkg_cache_abs PARENT_PATH pkg_cache_parent)
-    cmake_path(GET pkg_cache_abs FILENAME pkg_cache_name)
-
+function(fetch_package url hash path patch_key)
     # Temporary directory.
     mktempdir(TMP)
 
-    # Destination
-    set(file ${TMP}/${pkg_url_filename})
-    set(dir ${TMP}/${pkg_url_filename}-extracted)
-    file(MAKE_DIRECTORY ${dir})
+    # Get filename from URL
+    get_filename_component(base_filename ${url} NAME)
 
-    # Now download
-    download_package(${file} ${hash})
-    echo("Downloaded ${pkg_url_filename} to ${TMP}")
+    # Download
+    set(file ${TMP}/${base_filename})
+    download(${url} ${file} ${hash})
+    echo("Downloaded ${base_filename} to ${TMP}")
 
     # Extract the downloaded archive
-    # TODO: Error handling
+    # TODO: Moar error handling
+    set(dir ${TMP}/${base_filename}-extracted)
+    file(MAKE_DIRECTORY ${dir})
+
     file(ARCHIVE_EXTRACT
         INPUT ${file}
         DESTINATION ${dir})
@@ -304,16 +290,25 @@ function(fetch_package)
 
     file(REAL_PATH "${contents}" contents_abs)
 
+    # paths
+    cmake_path(ABSOLUTE_PATH path NORMALIZE OUTPUT_VARIABLE abs_path)
+
+    cmake_path(GET abs_path PARENT_PATH path_parent)
+    cmake_path(GET abs_path FILENAME path_name)
+
     # rename tmp dir
-    set(tmp_renamed "${TMP}/${pkg_cache_name}")
+    set(tmp_renamed "${TMP}/${path_name}")
     file(RENAME "${contents_abs}" "${tmp_renamed}")
 
     # now copy
     # TODO: Error handling beyond what cmake does????
-    file(COPY ${tmp_renamed} DESTINATION ${pkg_cache_parent})
+    file(COPY ${tmp_renamed} DESTINATION ${path_parent})
+
+    # Write patch key
+    file(WRITE "${abs_path}/.cpm_patch_key" ${patch_key})
 
     # done! :)
-    echo("Extracted to ${pkg_cache_abs}")
+    echo("Extracted to ${abs_path}")
 
     file(REMOVE_RECURSE ${TMP})
 endfunction()
@@ -348,4 +343,44 @@ function(correct_package_hash)
     format_cpmfile()
 
     echo("Corrected hash")
+endfunction()
+
+# compute a hash of all patch file contents
+# if there are no patches, returns none
+function(compute_patch_key patches out)
+  if(NOT patches)
+    set("${out}" "none" PARENT_SCOPE)
+    return()
+  endif()
+
+  set(combined "")
+  foreach(PATCH ${patches})
+    file(READ "${PATCH}" contents)
+    string(APPEND combined "${contents}")
+  endforeach()
+
+  string(SHA512 key "${combined}")
+  set("${out}" "${key}" PARENT_SCOPE)
+endfunction()
+
+# Check if a package needs to be redownloaded. This can occur if:
+# - Patch key is missing or mismatched
+# - Package fetch dir is missing
+# path is the package cache path
+function(needs_refetch path patch_key out)
+    set(patch_key_file "${path}/.cpm_patch_key")
+
+    # download directory is empty or patch key file is missing
+    if (NOT EXISTS ${patch_key_file})
+        set(${out} TRUE PARENT_SCOPE)
+        return()
+    endif()
+
+    # compare patch key
+    file(READ "${patch_key_file}" current_patch_key)
+    if (NOT current_patch_key STREQUAL patch_key)
+        set(${out} TRUE PARENT_SCOPE)
+    else()
+        set(${out} FALSE PARENT_SCOPE)
+    endif()
 endfunction()
