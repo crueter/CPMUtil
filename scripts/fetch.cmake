@@ -11,7 +11,6 @@ include(utils)
 set(key discord-rpc)
 parse_key(${key})
 
-# TODO: This is a near exact copy of fetch.cmake
 # TODO: Handle CI packages
 
 # Get cache path.

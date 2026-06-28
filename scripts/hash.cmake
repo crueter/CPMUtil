@@ -8,13 +8,12 @@ cmake_minimum_required(VERSION 3.31)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 include(utils)
 
-parse_key(discord-rpc)
+set(key discord-rpc)
+parse_key("${key}")
 
-package_hash()
+get_package_hash(pkg_hash)
 
 option(CORRECT_HASH "Correct hash if it's mismatched" OFF)
-
-message(STATUS "correct: ${CORRECT_HASH}")
 
 if (pkg_hash STREQUAL hash)
     echo("Hashes match")
@@ -24,7 +23,7 @@ else()
     echo_error("Got:      ${pkg_hash}")
 
     if (CORRECT_HASH)
-        correct_package_hash()
+        set_package_hash("${object}" "${key}" ${pkg_hash}"")
     else()
         cmake_language(EXIT 1)
     endif()

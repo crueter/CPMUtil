@@ -314,35 +314,31 @@ function(fetch_package url hash path patch_key)
 endfunction()
 
 # Computes expected SHA512 hash of a package
-# Requires already-parsed object. Outputs to "pkg_hash"
-function(package_hash)
+# Requires already-parsed object
+function(get_package_hash out)
     mktempdir(TMP)
     get_url()
 
     set(file ${TMP}/${pkg_url_filename})
 
     download(${pkg_url} ${file})
-    file(SHA512 ${file} pkg_hash)
-    return(PROPAGATE pkg_hash)
+    file(SHA512 ${file} ${out})
+    return(PROPAGATE ${out})
 endfunction()
 
 # Correct the hash of the current package
-function(correct_package_hash)
-    if (NOT DEFINED pkg_hash)
-        package_hash()
-    endif()
-
-    string(JSON new_package SET "${object}" hash "\"${pkg_hash}\"")
+function(set_package_hash object key hash)
+    string(JSON new_package SET "${object}" hash "\"${hash}\"")
 
     get_cpmfile_content(cpmfile)
     # TODO: key inputs etc
-    string(JSON new_cpmfile SET "${cpmfile}" discord-rpc "${new_package}")
+    string(JSON new_cpmfile SET "${cpmfile}" "${key}" "${new_package}")
 
     get_cpmfile_path(file)
     file(WRITE ${file} "${new_cpmfile}")
     format_cpmfile()
 
-    echo("Corrected hash")
+    echo("Set hash of ${key}")
 endfunction()
 
 # compute a hash of all patch file contents
