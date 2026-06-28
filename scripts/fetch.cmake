@@ -16,22 +16,4 @@ if (ci)
     cmake_language(EXIT 1)
 endif()
 
-# Get cache path.
-get_cache_path(${package} ${version} cache_path)
-
-# patch keys
-compute_patch_key("${patches}" patch_key)
-needs_refetch(${cache_path} "${patch_key}" CACHE_INVALID)
-
-if (FORCE_REFETCH)
-    file(REMOVE_RECURSE ${cache_path})
-elseif (CACHE_INVALID)
-    echo("Cache for ${key} is missing or invalid")
-    file(REMOVE_RECURSE ${cache_path})
-else()
-    echo("Cache for ${key} is up-to-date")
-    cmake_language(EXIT 0)
-endif()
-
-get_package_url_object()
-fetch_package("${pkg_url}" "${hash}" "${cache_path}" "${patch_key}")
+fetch_package_object()

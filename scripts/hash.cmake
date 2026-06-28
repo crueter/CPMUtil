@@ -11,7 +11,8 @@ include(utils)
 set(key discord-rpc)
 parse_key("${key}")
 
-get_package_hash(pkg_hash)
+get_package_url_object(pkg_url)
+get_package_hash("${pkg_url}" pkg_hash)
 
 option(CORRECT_HASH "Correct hash if it's mismatched" OFF)
 

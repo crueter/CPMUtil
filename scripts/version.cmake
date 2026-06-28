@@ -12,10 +12,11 @@ set(key carboxyl)
 parse_key("${key}")
 
 if (NOT NEW_VERSION)
-    echo_error("You must provide a version")
+    fatal("You must provide a version")
 endif()
 
 set(version ${NEW_VERSION})
 
-get_package_hash(pkg_hash)
+get_package_url_object(pkg_url)
+get_package_hash("${pkg_url}" pkg_hash)
 modify_package("${object}" "${key}" "${version}" "${pkg_hash}")

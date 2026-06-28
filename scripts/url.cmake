@@ -10,6 +10,5 @@ include(utils)
 
 parse_key(discord-rpc)
 
-# Guh
-get_package_url_object()
-echo(${pkg_url})
+get_package_url_object(pkg_url)
+echo("${pkg_url}")

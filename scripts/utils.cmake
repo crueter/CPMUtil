@@ -5,10 +5,12 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/..)
-set(CPMUTIL_ROOT ${CMAKE_CURRENT_LIST_DIR}/../tests)
+if (CMAKE_SCRIPT_MODE_FILE)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/..)
+    set(CPMUTIL_ROOT ${CMAKE_CURRENT_LIST_DIR}/../tests)
 
-include(CPMUtil)
+    include(CPMUtil)
+endif()
 
 # Parse the JSON object for a given key.
 macro(parse_key key)
@@ -101,6 +103,7 @@ function(get_package_url)
 
         URL_OUT
         GIT_URL_OUT)
+
     cmake_parse_arguments(ARG "" "${oneValueArgs}" "" ${ARGN})
 
     if (NOT DEFINED ARG_URL_OUT)
@@ -147,6 +150,37 @@ function(get_package_url_object out)
     endif()
 
     return(PROPAGATE ${out})
+endfunction()
+
+# Fetch a package from an already-parsed object.
+function(fetch_package_object)
+    set(optionArgs FORCE)
+    cmake_parse_arguments(ARG "${optionArgs}" "" "" ${ARGN})
+
+    if (${url})
+        set(pkg_url "${url}")
+    else()
+        get_package_url(URL_OUT pkg_url
+            GIT_HOST "${git_host}"
+            REPO "${repo}"
+            VERSION "${version}"
+            ARTIFACT "${artifact}"
+            PACKAGE "${package}")
+    endif()
+
+    get_cache_path(${package} ${version} cache_path)
+
+    set(_fetch_args
+        URL "${pkg_url}"
+        HASH "${hash}"
+        PATH "${cache_path}"
+        PATCHES ${patches})
+
+    if(ARG_FORCE)
+        list(APPEND _fetch_args FORCE)
+    endif()
+
+    fetch_package(${_fetch_args})
 endfunction()
 
 # Get a package's cache path.
@@ -289,16 +323,55 @@ function(apply_patches patches dir)
 endfunction()
 
 # Fetches a file to the CPM source cache.
-function(fetch_package url hash path patch_key)
+function(fetch_package)
+    set(oneValueArgs
+        URL
+        HASH
+        PATH
+
+        PATCH_KEY)
+
+    set(multiValueArgs PATCHES)
+
+    set(optionArgs FORCE)
+
+    cmake_parse_arguments(ARG
+        "${optionArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if (NOT DEFINED ARG_URL)
+        fatal("fetch_package: URL is required")
+    endif()
+
+    if (NOT DEFINED ARG_HASH)
+        fatal("fetch_package: HASH is required")
+    endif()
+
+    if (NOT DEFINED ARG_PATH)
+        fatal("fetch_package: PATH is required")
+    endif()
+
+    if (NOT DEFINED ARG_PATCH_KEY)
+        compute_patch_key("${ARG_PATCHES}" ARG_PATCH_KEY)
+    endif()
+
+    # refetch if cache is invalid or forced
+    needs_refetch(${ARG_PATH} "${ARG_PATCH_KEY}" CACHE_INVALID)
+
+    if (ARG_FORCE OR CACHE_INVALID)
+        file(REMOVE_RECURSE ${ARG_PATH})
+    else()
+        return()
+    endif()
+
     # Temporary directory.
     mktempdir(TMP)
 
     # Get filename from URL
-    get_filename_component(base_filename ${url} NAME)
+    get_filename_component(base_filename ${ARG_URL} NAME)
 
     # Download
     set(file ${TMP}/${base_filename})
-    download(${url} ${file} ${hash})
+    download(${ARG_URL} ${file} ${ARG_HASH})
     echo("Downloaded ${base_filename}")
 
     # Extract the downloaded archive
@@ -327,7 +400,9 @@ function(fetch_package url hash path patch_key)
     file(REAL_PATH "${contents}" contents_abs)
 
     # paths
-    cmake_path(ABSOLUTE_PATH path NORMALIZE OUTPUT_VARIABLE abs_path)
+    cmake_path(ABSOLUTE_PATH ARG_PATH
+        NORMALIZE
+        OUTPUT_VARIABLE abs_path)
 
     cmake_path(GET abs_path PARENT_PATH path_parent)
     cmake_path(GET abs_path FILENAME path_name)
@@ -340,13 +415,14 @@ function(fetch_package url hash path patch_key)
     # TODO: Error handling beyond what cmake does????
     file(COPY ${tmp_renamed} DESTINATION ${path_parent})
 
+    # TODO: only echo this in script mode
     echo("Extracted to ${abs_path}")
 
     # Apply patches
-    apply_patches("${patches}" "${abs_path}")
+    apply_patches("${ARG_PATCHES}" "${abs_path}")
 
     # Write patch key
-    file(WRITE "${abs_path}/.cpm_patch_key" ${patch_key})
+    file(WRITE "${abs_path}/.cpm_patch_key" ${ARG_PATCH_KEY})
 
     # done! :)
     file(REMOVE_RECURSE ${TMP})

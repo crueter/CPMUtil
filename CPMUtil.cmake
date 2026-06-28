@@ -452,11 +452,6 @@ function(AddPackage)
     option(${PKG_ARGS_NAME}_FORCE_BUNDLED
         "Force the bundled package for ${PKG_ARGS_NAME}")
 
-    if (DEFINED ${PKG_ARGS_NAME}_CUSTOM_DIR AND
-        NOT ${PKG_ARGS_NAME}_CUSTOM_DIR STREQUAL "")
-        set(CPM_${PKG_ARGS_NAME}_SOURCE ${${PKG_ARGS_NAME}_CUSTOM_DIR})
-    endif()
-
     # URL parsing
     if (NOT DEFINED PKG_ARGS_URL)
         get_package_url(URL_OUT "PKG_ARGS_URL"
@@ -466,13 +461,13 @@ function(AddPackage)
             VERSION "${PKG_ARGS_VERSION}"
             ARTIFACT "${PKG_ARGS_ARTIFACT}"
             PACKAGE "${PKG_ARGS_NAME}")
+    else()
+        set(pkg_git_url ${PKG_ARGS_URL})
     endif()
 
     cpm_utils_message(STATUS "${PKG_ARGS_NAME} download URL is ${PKG_ARGS_URL}")
 
-    if(DEFINED PKG_ARGS_HASH)
-        set(pkg_hash "SHA512=${PKG_ARGS_HASH}")
-    else()
+    if(NOT DEFINED PKG_ARGS_HASH)
         cpm_utils_message(FATAL_ERROR "${PKG_ARGS_NAME}: No hash defined")
     endif()
 
@@ -554,10 +549,6 @@ function(AddPackage)
     endif()
 
     # extra options
-    if (PKG_ARGS_PATCHES)
-        list(APPEND EXTRA_ARGS PATCHES "${PKG_ARGS_PATCHES}")
-    endif()
-
     if (PKG_ARGS_OPTIONS)
         list(APPEND EXTRA_ARGS OPTIONS "${PKG_ARGS_OPTIONS}")
     endif()
@@ -574,25 +565,36 @@ function(AddPackage)
         "Using bundled package"
         "${PKG_ARGS_NAME}@${PKG_ARGS_VERSION}")
 
-    # TODO: Use fetch_package and avoid the double-call nonsense.
+    # Download/extract package
+    if (${PKG_ARGS_NAME}_CUSTOM_DIR STREQUAL "")
+        # cache path
+        get_cache_path(${PKG_ARGS_NAME} ${PKG_ARGS_VERSION} cache_path)
+
+        fetch_package(
+            URL "${PKG_ARGS_URL}"
+            HASH "${PKG_ARGS_HASH}"
+            PATH "${cache_path}"
+            PATCHES "${PKG_ARGS_PATCHES}")
+
+        set(source_dir "${cache_path}")
+    else()
+        set(source_dir "${${PKG_ARGS_NAME}_CUSTOM_DIR}")
+    endif()
+
     CPMAddPackage(
         NAME ${PKG_ARGS_NAME}
-        URL ${PKG_ARGS_URL}
-        URL_HASH ${pkg_hash}
         VERSION ${PKG_ARGS_VERSION}
+        SOURCE_DIR ${source_dir}
 
         EXCLUDE_FROM_ALL ON
 
         ${EXTRA_ARGS}
         ${PKG_ARGS_UNPARSED_ARGUMENTS})
 
-    if(DEFINED PKG_ARGS_SHA)
-        set(ver ${PKG_ARGS_SHA})
-    else()
-        set(ver ${PKG_ARGS_VERSION})
-    endif()
-
-    cpmutil_register_package(${PKG_ARGS_NAME} ${pkg_git_url} ${ver})
+    cpmutil_register_package(
+        ${PKG_ARGS_NAME}
+        ${pkg_git_url}
+        ${PKG_ARGS_VERSION})
 
     set(${PKG_ARGS_NAME}_ADDED YES PARENT_SCOPE)
     Propagate(${PKG_ARGS_NAME}_SOURCE_DIR)
