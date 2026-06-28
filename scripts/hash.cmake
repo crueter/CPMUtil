@@ -23,7 +23,7 @@ else()
     echo_error("Got:      ${pkg_hash}")
 
     if (CORRECT_HASH)
-        set_package_hash("${object}" "${key}" ${pkg_hash}"")
+        set_package_hash("${object}" "${key}" "${pkg_hash}")
     else()
         cmake_language(EXIT 1)
     endif()
