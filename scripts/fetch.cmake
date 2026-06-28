@@ -11,7 +11,10 @@ include(utils)
 set(key discord-rpc)
 parse_key(${key})
 
-# TODO: Handle CI packages
+if (ci)
+    echo_error("CI packages can't be prefetched")
+    cmake_language(EXIT 1)
+endif()
 
 # Get cache path.
 get_cache_path(${package} ${version} cache_path)
@@ -20,7 +23,9 @@ get_cache_path(${package} ${version} cache_path)
 compute_patch_key("${patches}" patch_key)
 needs_refetch(${cache_path} "${patch_key}" CACHE_INVALID)
 
-if (CACHE_INVALID)
+if (FORCE_REFETCH)
+    file(REMOVE_RECURSE ${cache_path})
+elseif (CACHE_INVALID)
     echo("Cache for ${key} is missing or invalid")
     file(REMOVE_RECURSE ${cache_path})
 else()

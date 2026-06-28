@@ -228,6 +228,24 @@ function(format_cpmfile)
     file(REMOVE_RECURSE ${TMP})
 endfunction()
 
+# Apply patches to a directory.
+function(apply_patches patches dir)
+    cpm_find_program(PATCH_EXE patch)
+    if (NOT PATCH_EXE)
+        echo_error("Could not find patch executable")
+        cmake_language(EXIT 1)
+    endif()
+
+    foreach(patch ${patches})
+        get_filename_component(patch_name ${patch} NAME)
+        echo("-- Applying patch ${patch_name}")
+        execute_process(
+            COMMAND ${PATCH_EXE} -p1
+            INPUT_FILE ${patch}
+            WORKING_DIRECTORY ${dir})
+    endforeach()
+endfunction()
+
 # Fetches a file to the CPM source cache.
 function(fetch_package url hash path patch_key)
     # Temporary directory.
@@ -239,7 +257,7 @@ function(fetch_package url hash path patch_key)
     # Download
     set(file ${TMP}/${base_filename})
     download(${url} ${file} ${hash})
-    echo("Downloaded ${base_filename} to ${TMP}")
+    echo("Downloaded ${base_filename}")
 
     # Extract the downloaded archive
     # TODO: Moar error handling
@@ -249,8 +267,6 @@ function(fetch_package url hash path patch_key)
     file(ARCHIVE_EXTRACT
         INPUT ${file}
         DESTINATION ${dir})
-
-    # TODO: Patches
 
     # This is copied near-verbatim from ExternalProject/extractfile.cmake.in
 
@@ -282,12 +298,15 @@ function(fetch_package url hash path patch_key)
     # TODO: Error handling beyond what cmake does????
     file(COPY ${tmp_renamed} DESTINATION ${path_parent})
 
+    echo("Extracted to ${abs_path}")
+
+    # Apply patches
+    apply_patches("${patches}" "${abs_path}")
+
     # Write patch key
     file(WRITE "${abs_path}/.cpm_patch_key" ${patch_key})
 
     # done! :)
-    echo("Extracted to ${abs_path}")
-
     file(REMOVE_RECURSE ${TMP})
 endfunction()
 

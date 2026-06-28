@@ -6,21 +6,5 @@
 cmake_minimum_required(VERSION 3.31)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
-include(utils)
-
-set(key discord-rpc)
-parse_key(${key})
-
-# TODO: This is a near exact copy of fetch.cmake
-# TODO: Handle CI packages
-
-# Get cache path.
-get_cache_path(${package} ${version} cache_path)
-
-# patch keys
-compute_patch_key("${patches}" patch_key)
-
-file(REMOVE_RECURSE ${cache_path})
-
-get_url()
-fetch_package("${pkg_url}" "${hash}" "${cache_path}" "${patch_key}")
+set(FORCE_REFETCH ON)
+include(fetch)
