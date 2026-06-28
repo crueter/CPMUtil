@@ -457,32 +457,18 @@ function(AddPackage)
         set(CPM_${PKG_ARGS_NAME}_SOURCE ${${PKG_ARGS_NAME}_CUSTOM_DIR})
     endif()
 
-    # TODO: See if this can be delegated to subshells
-    if(NOT DEFINED PKG_ARGS_GIT_HOST)
-        set(git_host github.com)
-    else()
-        set(git_host ${PKG_ARGS_GIT_HOST})
+    # URL parsing
+    if (NOT DEFINED PKG_ARGS_URL)
+        get_package_url(URL_OUT "PKG_ARGS_URL"
+            GIT_URL_OUT "pkg_git_url"
+            GIT_HOST "${PKG_ARGS_GIT_HOST}"
+            REPO "${PKG_ARGS_REPO}"
+            VERSION "${PKG_ARGS_VERSION}"
+            ARTIFACT "${PKG_ARGS_ARTIFACT}"
+            PACKAGE "${PKG_ARGS_NAME}")
     endif()
 
-    if(DEFINED PKG_ARGS_URL)
-        set(pkg_url ${PKG_ARGS_URL})
-        set(pkg_git_url ${pkg_url})
-    elseif(DEFINED PKG_ARGS_REPO)
-        set(pkg_git_url https://${git_host}/${PKG_ARGS_REPO})
-
-        if(DEFINED PKG_ARGS_ARTIFACT)
-            set(artifact "${PKG_ARGS_ARTIFACT}")
-            set(pkg_url
-                "${pkg_git_url}/releases/download/${PKG_ARGS_VERSION}/${artifact}")
-        else()
-            set(pkg_url "${pkg_git_url}/archive/${PKG_ARGS_VERSION}.tar.gz")
-        endif()
-    else()
-        cpm_utils_message(FATAL_ERROR
-            "${PKG_ARGS_NAME}: No URL or repository defined")
-    endif()
-
-    cpm_utils_message(DEBUG "${PKG_ARGS_NAME} download URL is ${pkg_url}")
+    cpm_utils_message(STATUS "${PKG_ARGS_NAME} download URL is ${PKG_ARGS_URL}")
 
     if(DEFINED PKG_ARGS_HASH)
         set(pkg_hash "SHA512=${PKG_ARGS_HASH}")
@@ -521,6 +507,7 @@ function(AddPackage)
         set(use_system ON)
     endif()
 
+    # find_package nonsense
     if(use_system)
         set(find_args ${PKG_ARGS_NAME})
         if(DEFINED PKG_ARGS_MIN_VERSION)
@@ -566,6 +553,7 @@ function(AddPackage)
         endif()
     endif()
 
+    # extra options
     if (PKG_ARGS_PATCHES)
         list(APPEND EXTRA_ARGS PATCHES "${PKG_ARGS_PATCHES}")
     endif()
@@ -586,9 +574,10 @@ function(AddPackage)
         "Using bundled package"
         "${PKG_ARGS_NAME}@${PKG_ARGS_VERSION}")
 
+    # TODO: Use fetch_package and avoid the double-call nonsense.
     CPMAddPackage(
         NAME ${PKG_ARGS_NAME}
-        URL ${pkg_url}
+        URL ${PKG_ARGS_URL}
         URL_HASH ${pkg_hash}
         VERSION ${PKG_ARGS_VERSION}
 

@@ -33,5 +33,5 @@ else()
     cmake_language(EXIT 0)
 endif()
 
-get_url()
+get_package_url_object()
 fetch_package("${pkg_url}" "${hash}" "${cache_path}" "${patch_key}")

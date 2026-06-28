@@ -20,14 +20,28 @@ endmacro()
 # Analogous to POSIX echo
 macro(echo)
     string(REPLACE ";" " " message "${ARGN}")
-    execute_process(COMMAND ${CMAKE_COMMAND} -E echo
-        "${message}")
+    if (CMAKE_SCRIPT_MODE_FILE)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E echo
+            "${message}")
+    else()
+        message(STATUS "${message}")
+    endif()
 endmacro()
 
 # Analogous to POSIX echo, but to stderr
 macro(echo_error)
     string(REPLACE ";" " " message "${ARGN}")
     message(NOTICE "${message}")
+endmacro()
+
+# Fatal error, accounting for script mode
+macro(fatal)
+    if (CMAKE_SCRIPT_MODE_FILE)
+        echo_error(${ARGN})
+        cmake_language(EXIT 1)
+    else()
+        message(FATAL_ERROR ${ARGN})
+    endif()
 endmacro()
 
 # Analogous to POSIX sleep
@@ -72,40 +86,71 @@ function(mktempdir out)
         return()
     endif()
 
-    echo_error("Fatal: Could not create temporary directory. "
+    fatal("Fatal: Could not create temporary directory. "
         "Check write permissions to the current directory")
-    cmake_language(EXIT 1)
 endfunction()
 
-# Get a package's effective URL. Outputs to "pkg_url"
-# Requires an object to already be parsed (TODO)
-function(get_url)
-    if(NOT DEFINED git_host)
-        set(git_host github.com)
+# Get a package's effective URL.
+function(get_package_url)
+    set(oneValueArgs
+        GIT_HOST
+        REPO
+        VERSION
+        ARTIFACT
+        PACKAGE
+
+        URL_OUT
+        GIT_URL_OUT)
+    cmake_parse_arguments(ARG "" "${oneValueArgs}" "" ${ARGN})
+
+    if (NOT DEFINED ARG_URL_OUT)
+        fatal("get_package_url: URL_OUT is required")
     endif()
 
-    if(DEFINED url)
-        set(pkg_url ${url})
-    elseif(DEFINED repo)
-        set(pkg_git_url https://${git_host}/${repo})
+    if(NOT DEFINED ARG_GIT_HOST)
+        set(ARG_GIT_HOST github.com)
+    endif()
 
-        if(DEFINED artifact)
-            set(pkg_url
-                "${pkg_git_url}/releases/download/${version}/${artifact}")
+    if(DEFINED ARG_REPO)
+        set(url https://${ARG_GIT_HOST}/${ARG_REPO})
+
+        if (DEFINED ARG_GIT_URL_OUT)
+            set(${ARG_GIT_URL_OUT} "${url}")
+        endif()
+
+        if(DEFINED ARG_ARTIFACT)
+            set(url
+                "${url}/releases/download/${ARG_VERSION}/${ARG_ARTIFACT}")
         else()
-            set(pkg_url "${pkg_git_url}/archive/${version}.tar.gz")
+            set(url "${url}/archive/${ARG_VERSION}.tar.gz")
         endif()
     else()
-        cpm_utils_message(FATAL_ERROR
-            "${package}: No URL or repository defined")
+        fatal("${package}: No URL or repository defined")
     endif()
 
-    return(PROPAGATE pkg_url)
+    set(${ARG_URL_OUT} "${url}")
+
+    return(PROPAGATE ${ARG_URL_OUT} ${ARG_GIT_URL_OUT})
+endfunction()
+
+# Get a package's effective URL, for an already parsed object
+function(get_package_url_object out)
+    if (${url})
+        set(${out} "${url}")
+    else()
+        get_package_url(URL_OUT "${out}"
+            GIT_HOST "${git_host}"
+            REPO "${repo}"
+            VERSION "${version}"
+            ARTIFACT "${artifact}"
+            PACKAGE "${package}")
+    endif()
+
+    return(PROPAGATE ${out})
 endfunction()
 
 # Get a package's cache path.
 function(get_cache_path package version out)
-    # Construct cache path
     string(TOLOWER ${package} lower_name)
 
     # TODO: Figure out a sln to CPM_SOURCE_CACHE; CPMConfig.cmake?
@@ -141,8 +186,7 @@ function(download url file)
 
     # TODO: use return code or something
     if (NOT code EQUAL 0)
-        echo_error("Fatal: Download for ${pkg_url} failed after 5 tries")
-        cmake_language(EXIT 1)
+        fatal("Download for ${pkg_url} failed after 5 tries")
     endif()
 endfunction()
 
@@ -205,11 +249,10 @@ function(format_cpmfile)
                 set(command ${JSONPP_EXECUTABLE} -f json -t json -json_opt
                     "${json_opts_str}")
             else()
-                echo_error("Fatal: could not find one of jq, Python, or perl"
+                fatal("Fatal: could not find one of jq, Python, or perl"
                     "(json_pp). Install one of these packages to use"
                     "CPMUtil's tooling. If they ARE installed, your"
                     "CMake installation is broken.")
-                cmake_language(EXIT 1)
             endif()
         endif()
     endif()
@@ -232,8 +275,7 @@ endfunction()
 function(apply_patches patches dir)
     cpm_find_program(PATCH_EXE patch)
     if (NOT PATCH_EXE)
-        echo_error("Could not find patch executable")
-        cmake_language(EXIT 1)
+        fatal("Could not find patch executable")
     endif()
 
     foreach(patch ${patches})
@@ -312,14 +354,13 @@ endfunction()
 
 # Computes expected SHA512 hash of a package
 # Requires already-parsed object
-function(get_package_hash out)
+function(get_package_hash url out)
     mktempdir(TMP)
-    get_url()
 
-    get_filename_component(filename ${pkg_url} NAME)
+    get_filename_component(filename ${url} NAME)
     set(file ${TMP}/${filename})
 
-    download(${pkg_url} ${file})
+    download(${url} ${file})
     file(SHA512 ${file} ${out})
     return(PROPAGATE ${out})
 endfunction()
