@@ -94,6 +94,7 @@ while read -r key git_host repo version artifact; do
 	fi
 
 	# filter out some commonly known annoyances
+	# TODO: migrate to cmake
 	# TODO add more
 
 	if [ "$key" = "vulkan-validation-layers" ]; then
