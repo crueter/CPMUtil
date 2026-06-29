@@ -5,16 +5,18 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/)
-include(utils)
+include(./ScriptUtils.cmake)
 
-# Remove key
+parse_script_args(args)
 
 get_cpmfile_content(object)
 
-# TODO: error handling
-string(JSON new_object REMOVE "${object}" discord-rpc)
+# Remove key
+foreach(key ${args})
+    string(JSON object REMOVE "${object}" ${key})
+endforeach()
 
+# write
 get_cpmfile_path(file)
-file(WRITE ${file} "${new_object}")
+file(WRITE ${file} "${object}")
 format_cpmfile()

@@ -6,12 +6,16 @@
 cmake_minimum_required(VERSION 3.31)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
-include(utils)
+include(ScriptUtils)
 
-parse_key(discord-rpc)
+parse_script_args(args)
 
-# Guh.
-get_cache_path(${package} ${version} cache_path)
+foreach(key ${args})
+    parse_key(${key})
 
-file(REAL_PATH ${cache_path} abs_path)
-echo("${abs_path}")
+    # Guh.
+    get_cache_path(${package} ${version} cache_path)
+
+    cmake_path(ABSOLUTE_PATH cache_path NORMALIZE OUTPUT_VARIABLE abs_path)
+    echo("${key}: ${abs_path}")
+endforeach()

@@ -6,14 +6,17 @@
 cmake_minimum_required(VERSION 3.31)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
-include(utils)
+include(ScriptUtils)
 
-set(key discord-rpc)
-parse_key(${key})
+parse_script_args(args)
 
-if (ci)
-    echo_error("CI packages can't be prefetched")
-    cmake_language(EXIT 1)
-endif()
+foreach(key ${args})
+    parse_key(${key})
 
-fetch_package_object(FORCE)
+    if (ci)
+        echo_error("CI packages can't be prefetched")
+        cmake_language(EXIT 1)
+    endif()
+
+    fetch_package_object(FORCE)
+endforeach()

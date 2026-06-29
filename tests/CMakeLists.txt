@@ -10,7 +10,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../scripts)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # TODO: fix this
-include(utils)
+include(ScriptUtils)
 include(CPMUtil)
 
 add_subdirectory(qt)

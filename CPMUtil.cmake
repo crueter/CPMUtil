@@ -13,10 +13,10 @@ endif()
 
 # Root directory detection
 if (CMAKE_SCRIPT_MODE_FILE)
-    # In script mode, default to the current list dir
+    # In script mode, default to PWD
     # Or you can specify one yourself
     if (NOT DEFINED CPMUTIL_ROOT)
-        set(CPMUTIL_ROOT ${CMAKE_CURRENT_LIST_DIR})
+        set(CPMUTIL_ROOT ${CMAKE_SOURCE_DIR})
     endif()
 else()
     # A project exists, we can use its directory
@@ -84,7 +84,367 @@ else()
         "does not exist, AddJsonPackage will be a no-op")
 endif()
 
-# Utility stuff
+#############
+# UTILITIES #
+#############
+
+# Analogous to POSIX echo
+macro(echo)
+    string(REPLACE ";" " " message "${ARGN}")
+    if (CMAKE_SCRIPT_MODE_FILE)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E echo
+            "${message}")
+    else()
+        message(STATUS "${message}")
+    endif()
+endmacro()
+
+# Analogous to POSIX echo, but to stderr
+macro(echo_error)
+    string(REPLACE ";" " " message "${ARGN}")
+    message(NOTICE "${message}")
+endmacro()
+
+# Fatal error, accounting for script mode
+macro(fatal)
+    if (CMAKE_SCRIPT_MODE_FILE)
+        echo_error(${ARGN})
+        cmake_language(EXIT 1)
+    else()
+        message(FATAL_ERROR ${ARGN})
+    endif()
+endmacro()
+
+# Analogous to POSIX sleep
+macro(sleep time)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E sleep ${time})
+endmacro()
+
+# Analogous to GNU mktemp, with fallbacks
+function(mktempdir out)
+    # shell out to system mktemp if available
+    find_program(MKTEMP_EXECUTABLE mktemp)
+    if (MKTEMP_EXECUTABLE)
+        execute_process(COMMAND mktemp -d
+            OUTPUT_VARIABLE dir
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE ret)
+
+        if (ret EQUAL 0)
+            set(${out} "${dir}" PARENT_SCOPE)
+            return()
+        endif()
+    endif()
+
+    string(RANDOM LENGTH 10 rand_str)
+    set(tmp_str "tmp.${rand_str}")
+
+    # create something in /tmp if it exists
+    if(EXISTS "/tmp" AND IS_DIRECTORY "/tmp")
+        set(dir "/tmp/${tmp_str}")
+        file(MAKE_DIRECTORY "${dir}" RESULT res)
+        if (res EQUAL 0)
+            set(${out} "${dir}" PARENT_SCOPE)
+            return()
+        endif()
+    endif()
+
+    # tmpdir does not exist, extremely legacy mode
+    set(dir "${CMAKE_CURRENT_LIST_DIR}/.tmp/${tmp_str}")
+    file(MAKE_DIRECTORY "${dir}" RESULT res)
+    if (res EQUAL 0)
+        set(${out} "${dir}" PARENT_SCOPE)
+        return()
+    endif()
+
+    fatal("Fatal: Could not create temporary directory. "
+        "Check write permissions to the current directory")
+endfunction()
+
+# Get a package's effective URL.
+function(get_package_url)
+    set(oneValueArgs
+        GIT_HOST
+        REPO
+        VERSION
+        ARTIFACT
+        PACKAGE
+
+        URL_OUT
+        GIT_URL_OUT)
+
+    cmake_parse_arguments(ARG "" "${oneValueArgs}" "" ${ARGN})
+
+    if (NOT DEFINED ARG_URL_OUT)
+        fatal("get_package_url: URL_OUT is required")
+    endif()
+
+    if(NOT DEFINED ARG_GIT_HOST)
+        set(ARG_GIT_HOST github.com)
+    endif()
+
+    if(DEFINED ARG_REPO)
+        set(url https://${ARG_GIT_HOST}/${ARG_REPO})
+
+        if (DEFINED ARG_GIT_URL_OUT)
+            set(${ARG_GIT_URL_OUT} "${url}")
+        endif()
+
+        if(DEFINED ARG_ARTIFACT)
+            set(url
+                "${url}/releases/download/${ARG_VERSION}/${ARG_ARTIFACT}")
+        else()
+            set(url "${url}/archive/${ARG_VERSION}.tar.gz")
+        endif()
+    else()
+        fatal("${package}: No URL or repository defined")
+    endif()
+
+    set(${ARG_URL_OUT} "${url}")
+
+    return(PROPAGATE ${ARG_URL_OUT} ${ARG_GIT_URL_OUT})
+endfunction()
+
+# Get a package's cache path.
+function(get_cache_path package version out)
+    string(TOLOWER ${package} lower_name)
+
+    # TODO: Figure out a sln to CPM_SOURCE_CACHE; CPMConfig.cmake?
+    set(${out} ${CPM_SOURCE_CACHE}/${lower_name}/${version})
+
+    return(PROPAGATE ${out})
+endfunction()
+
+# Download a URL to file, with a sha512 hash
+# And retry 5 times
+function(cpm_download url file)
+    list(LENGTH ARGN argn_len)
+    if(argn_len GREATER 0)
+        list(GET ARGN 0 hash)
+        set(args EXPECTED_HASH SHA512=${hash})
+    endif()
+
+    foreach(i RANGE 5)
+        file(DOWNLOAD ${url} ${file}
+            ${args}
+            STATUS ret
+            LOG log)
+
+        list(GET ret 0 code)
+        if (code EQUAL 0)
+            break()
+        endif()
+
+        echo_error("Download attempt ${i} failed: ${log}\n"
+            "Trying again in 5 seconds")
+        sleep(5)
+    endforeach()
+
+    # TODO: use return code or something
+    if (NOT code EQUAL 0)
+        fatal("Download for ${pkg_url} failed after 5 tries")
+    endif()
+endfunction()
+
+# Wrapper around find_program that works with Git for Windows
+macro(cpm_find_program)
+    # Windows needs additional paths for some utilities.
+    if (CMAKE_HOST_WIN32)
+        find_package(Git QUIET)
+        if(GIT_EXECUTABLE)
+            # Search within the Git for Windows paths.
+            get_filename_component(extra_search_path
+                ${GIT_EXECUTABLE} DIRECTORY)
+            get_filename_component(extra_search_path_1up
+                ${extra_search_path} DIRECTORY)
+            get_filename_component(extra_search_path_2up
+                ${extra_search_path_1up} DIRECTORY)
+
+            set(base_hints "${extra_search_path_1up}/usr/bin"
+                "${extra_search_path_2up}/usr/bin")
+
+            # Also add core_perl to the paths, for perl commands like json_pp
+            set(hints "")
+            foreach(hint ${base_hints})
+                list(APPEND hints
+                    "${hint}"
+                    "${hint}/core_perl")
+            endforeach()
+
+            find_program(${ARGN} HINTS ${hints})
+            return()
+        endif()
+
+        # If no Git is found, continue as normal
+    endif()
+
+    find_program(${ARGN})
+endmacro()
+
+# Apply patches to a directory.
+function(apply_patches patches dir)
+    cpm_find_program(PATCH_EXE patch)
+    if (NOT PATCH_EXE)
+        fatal("Could not find patch executable")
+    endif()
+
+    foreach(patch ${patches})
+        get_filename_component(patch_name ${patch} NAME)
+        echo("-- Applying patch ${patch_name}")
+        execute_process(
+            COMMAND ${PATCH_EXE} -p1
+            INPUT_FILE ${patch}
+            WORKING_DIRECTORY ${dir})
+    endforeach()
+endfunction()
+
+# Fetches a file to the CPM source cache.
+function(fetch_package)
+    set(oneValueArgs
+        URL
+        HASH
+        PATH
+
+        PATCH_KEY)
+
+    set(multiValueArgs PATCHES)
+
+    set(optionArgs FORCE)
+
+    cmake_parse_arguments(ARG
+        "${optionArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if (NOT DEFINED ARG_URL)
+        fatal("fetch_package: URL is required")
+    endif()
+
+    if (NOT DEFINED ARG_HASH)
+        fatal("fetch_package: HASH is required")
+    endif()
+
+    if (NOT DEFINED ARG_PATH)
+        fatal("fetch_package: PATH is required")
+    endif()
+
+    if (NOT DEFINED ARG_PATCH_KEY)
+        compute_patch_key("${ARG_PATCHES}" ARG_PATCH_KEY)
+    endif()
+
+    # refetch if cache is invalid or forced
+    needs_refetch(${ARG_PATH} "${ARG_PATCH_KEY}" CACHE_INVALID)
+
+    if (ARG_FORCE OR CACHE_INVALID)
+        file(REMOVE_RECURSE ${ARG_PATH})
+    else()
+        return()
+    endif()
+
+    # Temporary directory.
+    mktempdir(TMP)
+
+    # Get filename from URL
+    get_filename_component(base_filename ${ARG_URL} NAME)
+
+    # Download
+    set(file ${TMP}/${base_filename})
+    cpm_download(${ARG_URL} ${file} ${ARG_HASH})
+    echo("Downloaded ${base_filename}")
+
+    # Extract the downloaded archive
+    # TODO: Moar error handling
+    set(dir ${TMP}/${base_filename}-extracted)
+    file(MAKE_DIRECTORY ${dir})
+
+    file(ARCHIVE_EXTRACT
+        INPUT ${file}
+        DESTINATION ${dir})
+
+    # This is copied near-verbatim from ExternalProject/extractfile.cmake.in
+
+    # If there's just one subdirectory and nothing else, move it
+    file(GLOB contents "${dir}/*")
+    list(REMOVE_ITEM contents "${dir}/.DS_Store")
+    list(LENGTH contents n)
+
+    # If n == 1 and contents points to a directory, this is a GitHub-style pack
+    # In this case contents points to the subdir which will get renamed
+    # If not, contents will point to the parent dir which will get renamed
+    if (NOT n EQUAL 1 OR NOT IS_DIRECTORY "${contents}")
+        set(contents "${dir}")
+    endif()
+
+    file(REAL_PATH "${contents}" contents_abs)
+
+    # paths
+    cmake_path(ABSOLUTE_PATH ARG_PATH
+        NORMALIZE
+        OUTPUT_VARIABLE abs_path)
+
+    cmake_path(GET abs_path PARENT_PATH path_parent)
+    cmake_path(GET abs_path FILENAME path_name)
+
+    # rename tmp dir
+    set(tmp_renamed "${TMP}/${path_name}")
+    file(RENAME "${contents_abs}" "${tmp_renamed}")
+
+    # now copy
+    # TODO: Error handling beyond what cmake does????
+    file(COPY ${tmp_renamed} DESTINATION ${path_parent})
+
+    # TODO: only echo this in script mode
+    echo("Extracted to ${abs_path}")
+
+    # Apply patches
+    apply_patches("${ARG_PATCHES}" "${abs_path}")
+
+    # Write patch key
+    file(WRITE "${abs_path}/.cpm_patch_key" ${ARG_PATCH_KEY})
+
+    # done! :)
+    file(REMOVE_RECURSE ${TMP})
+endfunction()
+
+# compute a hash of all patch file contents
+# if there are no patches, returns none
+function(compute_patch_key patches out)
+  if(NOT patches)
+    set("${out}" "none" PARENT_SCOPE)
+    return()
+  endif()
+
+  set(combined "")
+  foreach(PATCH ${patches})
+    file(READ "${PATCH}" contents)
+    string(APPEND combined "${contents}")
+  endforeach()
+
+  string(SHA512 key "${combined}")
+  set("${out}" "${key}" PARENT_SCOPE)
+endfunction()
+
+# Check if a package needs to be redownloaded. This can occur if:
+# - Patch key is missing or mismatched
+# - Package fetch dir is missing
+# path is the package cache path
+function(needs_refetch path patch_key out)
+    set(patch_key_file "${path}/.cpm_patch_key")
+
+    # download directory is empty or patch key file is missing
+    if (NOT EXISTS ${patch_key_file})
+        set(${out} TRUE PARENT_SCOPE)
+        return()
+    endif()
+
+    # compare patch key
+    file(READ "${patch_key_file}" current_patch_key)
+    if (NOT current_patch_key STREQUAL patch_key)
+        set(${out} TRUE PARENT_SCOPE)
+    else()
+        set(${out} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
+# Message
 function(cpm_utils_message level)
     string(REPLACE ";" " " message "${ARGN}")
     message(${level} "[CPMUtil] ${message}")
@@ -131,7 +491,10 @@ function(get_json_element object out member)
     if(err)
         if (DEFINED default)
             set("${out}" "${default}" PARENT_SCOPE)
+        else()
+            unset("${out}" PARENT_SCOPE)
         endif()
+
         return()
     endif()
 
@@ -562,8 +925,7 @@ function(AddPackage)
     endif()
 
     cpm_utils_message(STATUS
-        "Using bundled package"
-        "${PKG_ARGS_NAME}@${PKG_ARGS_VERSION}")
+        "Using bundled package ${PKG_ARGS_NAME}@${PKG_ARGS_VERSION}")
 
     # Download/extract package
     if (${PKG_ARGS_NAME}_CUSTOM_DIR STREQUAL "")

@@ -5,10 +5,13 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/)
-include(utils)
+include(./ScriptUtils.cmake)
 
-parse_key(discord-rpc)
+parse_script_args(args)
 
-get_package_url_object(pkg_url)
-echo("${pkg_url}")
+foreach(key ${args})
+    parse_key(${key})
+
+    get_package_url_object(pkg_url)
+    echo("${key}: ${pkg_url}")
+endforeach()
