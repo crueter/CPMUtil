@@ -5,8 +5,18 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
-include(ScriptUtils)
+include(${CMAKE_CURRENT_LIST_DIR}/../ScriptUtils.cmake)
+
+function(usage)
+    echo([=[
+Usage: cpmutil.sh package dir [-a|--all] [PACKAGE]...
+
+Get the local directory for the specified packages.
+
+Options:
+    -a, --all       Operate on all packages in this project.
+]=])
+endfunction()
 
 parse_script_args(args)
 

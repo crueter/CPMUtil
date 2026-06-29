@@ -222,6 +222,8 @@ function(cpm_download url file)
     if(argn_len GREATER 0)
         list(GET ARGN 0 hash)
         set(args EXPECTED_HASH SHA512=${hash})
+    else()
+        unset(args)
     endif()
 
     foreach(i RANGE 5)
@@ -615,6 +617,7 @@ macro(parse_object object)
         get_json_element("${object}" source_subdir source_subdir)
         get_json_element("${object}" bundled bundled "unset")
         get_json_element("${object}" find_args find_args)
+        get_json_element("${object}" skip_updates skip_updates OFF)
         get_json_element("${object}" raw_patches patches)
 
         # artifact text replacement

@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # shellcheck disable=SC1091
-. "$SCRIPTS"/../common.sh
 
 RETURN=0
 

@@ -5,10 +5,7 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-include(./ScriptUtils.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/ScriptUtils.cmake)
 
-get_cpmfile_keys(keys)
-
-foreach(key ${keys})
-    echo("${key}")
-endforeach()
+# TODO: Run some sanity checks e.g. patches exist, etc.
+format_cpmfile()

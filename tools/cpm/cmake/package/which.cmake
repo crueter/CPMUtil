@@ -5,8 +5,17 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-include(./ScriptUtils.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../ScriptUtils.cmake)
 
+function(usage)
+    echo([=[
+Usage: cpmutil.sh package which [PACKAGE]...
+
+Check if a package or packages are defined in the cpmfile.
+]=])
+endfunction()
+
+set(NO_ALL TRUE)
 parse_script_args(args)
 set(exit 0)
 

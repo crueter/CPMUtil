@@ -5,19 +5,34 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
-include(ScriptUtils)
+include(${CMAKE_CURRENT_LIST_DIR}/../ScriptUtils.cmake)
 
+function(usage)
+    echo([=[
+Usage: cpmutil.sh package hash [-a|--all] [PACKAGE]...
+
+Check the hash of a specific package or packages.
+If a hash mismatch occurs, this script will update the package's hash.
+
+Options:
+    -a, --all       Operate on all packages in this project.
+
+Note that this procedure will usually take a long time
+depending on the number and size of dependencies.
+]=])
+endfunction()
+
+set(NO_CI ON)
 parse_script_args(args)
 
 get_cpmfile_content(cpmfile)
 foreach(key ${args})
     parse_key("${key}")
+    echo("-- ${key}")
 
     get_package_url_object(pkg_url)
     get_package_hash("${pkg_url}" pkg_hash)
 
-    echo("-- ${key}")
     if (pkg_hash STREQUAL hash)
         echo("Hashes match")
     else()

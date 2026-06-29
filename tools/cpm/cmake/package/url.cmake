@@ -5,7 +5,18 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-include(./ScriptUtils.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../ScriptUtils.cmake)
+
+function(usage)
+    echo([=[
+Usage: cpmutil.sh package url [-a|--all] [PACKAGE]...
+
+Get the download URL for the specified packages.
+
+Options:
+    -a, --all       Operate on all packages in this project.
+]=])
+endfunction()
 
 parse_script_args(args)
 

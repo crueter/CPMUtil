@@ -5,8 +5,17 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-include(./ScriptUtils.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../ScriptUtils.cmake)
 
+function(usage)
+    echo([=[
+Usage: cpmutil.sh package rm [PACKAGE]...
+
+Delete a package or packages' cpmfile definition.
+]=])
+endfunction()
+
+set(NO_ALL TRUE)
 parse_script_args(args)
 
 get_cpmfile_content(object)

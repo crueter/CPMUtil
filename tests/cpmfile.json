@@ -1,11 +1,11 @@
 {
     "boost": {
         "artifact": "%VERSION%-cmake.7z",
-        "hash": "e5b049e5b61964480ca816395f63f95621e66cb9bcf616a8b10e441e0e69f129e22443acb11e77bc1e8170f8e4171b9b7719891efc43699782bfcd4b3a365f01",
+        "hash": "7015de62eaaf0bb1f3ec165e7ff767d265a708e8236a43eb6e2db2f8117a16383c83c4cc86195d5bc33fb0d8dc6e366e32eab50230e40b09d57c3028ac7f2d84",
         "min_version": "1.57",
         "package": "Boost",
         "repo": "boostorg/boost",
-        "version": "boost-1.88.0"
+        "version": "boost-1.91.0-1"
     },
     "carboxyl": {
         "hash": "a9c935956bbf0aba688f4283f63f60b25525dc858cc0885f5b7a2ffd1c26684b028b31398182702532a59010f3b1bef8bc2d904cc2b3af9c8d85a97d24bb68b8",

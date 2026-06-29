@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.31)
 
-include(./ScriptUtils.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/ScriptUtils.cmake)
 
 # Update CPMUtil and its tooling/etc
 set(pwd ${CMAKE_SOURCE_DIR})
