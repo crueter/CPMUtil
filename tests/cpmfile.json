@@ -1,15 +1,19 @@
 {
     "boost": {
         "artifact": "%VERSION%-cmake.7z",
-        "hash": "e5b049e5b61964480ca816395f63f95621e66cb9bcf616a8b10e441e0e69f129e22443acb11e77bc1e8170f8e4171b9b7719891efc43699782bfcd4b3a365f01",
+        "hash": "7015de62eaaf0bb1f3ec165e7ff767d265a708e8236a43eb6e2db2f8117a16383c83c4cc86195d5bc33fb0d8dc6e366e32eab50230e40b09d57c3028ac7f2d84",
         "min_version": "1.57",
         "package": "Boost",
         "repo": "boostorg/boost",
-        "version": "boost-1.88.0"
+        "version": "boost-1.91.0-1"
     },
     "carboxyl": {
         "hash": "a9c935956bbf0aba688f4283f63f60b25525dc858cc0885f5b7a2ffd1c26684b028b31398182702532a59010f3b1bef8bc2d904cc2b3af9c8d85a97d24bb68b8",
-        "repo": "crueter/carboxyl",
+        "patches": [
+            "0001-add-a-test-patch-marker-to-readmemd.patch",
+            "0002-add-another-patch-marker.patch"
+        ],
+        "repo": "crueter/Carboxyl",
         "version": "618487377a"
     },
     "discord-rpc": {
@@ -40,11 +44,19 @@
         "repo": "fmtlib/fmt",
         "version": "12.1.0"
     },
+    "mbedtls": {
+        "repo": "Mbed-TLS/mbedtls",
+        "version": "mbedtls-2.28.10"
+    },
     "openssl": {
         "artifact": "openssl",
         "ci": true,
         "repo": "crueter-ci/OpenSSL",
         "version": "3.6.0-1cb0d36b39"
+    },
+    "openssl-src": {
+        "repo": "openssl/openssl",
+        "version": "openssl-3.6.0"
     },
     "opus": {
         "find_args": "MODULE",
@@ -73,7 +85,6 @@
         "options": [
             "SIRIT_BUILD_STATIC ON"
         ],
-        "package": "sirit",
         "repo": "eden-emulator/sirit",
         "version": "v1.0.5"
     },
@@ -84,19 +95,38 @@
         "repo": "martinus/unordered_dense",
         "version": "v4.5.0"
     },
+    "vulkan-headers": {
+        "hash": "3dd6d95ff1916b0660d5d15882232da53f263e8da3bfd0818c719a24f8f63ea0228ed3f6575cc8473ed53d688f280b93ef8412dc8dddf20ae3ce495f5f653b6f",
+        "package": "VulkanHeaders",
+        "repo": "KhronosGroup/Vulkan-Headers",
+        "version": "v1.4.355"
+    },
     "vulkan-utility-headers": {
         "artifact": "VulkanUtilityHeaders.tar.zst",
         "git_host": "git.crueter.xyz",
-        "hash": "9922217b39faf73cd4fc1510f2fdba14a49aa5c0d77f9ee24ee0512cef16b234d0cabc83c1fec861fa5df1d43e7f086ca9b6501753899119f39c5ca530cb0dae",
+        "hash": "16dac0e6586702580c4279e4cd37ffe3cf909c93eb31b5069da7af36436d47b270a9cbaac953bb66c22ed12ed67ffa096688599267f307dfb62be1bc09f79833",
         "package": "VulkanUtilityLibraries",
         "repo": "scripts/VulkanUtilityHeaders",
-        "version": "1.4.328"
+        "version": "1.4.335"
+    },
+    "vulkan-utility-libraries": {
+        "hash": "50b1c820296c6798fe28f441691bbeeb9137940fc34c1f400aa1515de134d3990e76df674c290fd39c2b3206a089ca58190147b530db81c61a96cf5e18e495d9",
+        "package": "VulkanUtilityLibraries",
+        "repo": "KhronosGroup/Vulkan-Utility-Libraries",
+        "version": "v1.4.355"
+    },
+    "vulkan-validation-layers": {
+        "artifact": "android-binaries-%NUMERIC_VERSION%.zip",
+        "hash": "8812ae84cbe49e6a3418ade9c458d3be6d74a3dffd319d4502007b564d580998056e8190414368ec11b27bc83993c7a0dad713c31bcc3d9553b51243efee3753",
+        "numeric_version": "1.4.341.0",
+        "repo": "KhronosGroup/Vulkan-ValidationLayers",
+        "version": "vulkan-sdk-%NUMERIC_VERSION%"
     },
     "zlib": {
         "hash": "06eaa3a1eaaeb31f461a2283b03a91ed8eb2406e62cd97ea1c69836324909edeecd93edd03ff0bf593d9dde223e3376149134c5b1fe2e8688c258cadf8cd60ff",
         "min_version": "1.2",
         "options": [
-            "ZLIB_BUILD_versionRED OFF",
+            "ZLIB_BUILD_RED OFF",
             "ZLIB_INSTALL OFF"
         ],
         "package": "ZLIB",

@@ -1,0 +1,35 @@
+From 637234276e0bcb222fc9bb3859fcffba15897762 Mon Sep 17 00:00:00 2001
+From: crueter <crueter@eden-emu.dev>
+Date: Tue, 30 Jun 2026 14:14:17 -0400
+Subject: [PATCH] add another patch marker
+
+---
+ .cpm_patch_key | 2 +-
+ README.md      | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/.cpm_patch_key b/.cpm_patch_key
+index a22703d..c86c3f3 100644
+--- a/.cpm_patch_key
++++ b/.cpm_patch_key
+@@ -1 +1 @@
+-2b01c4bce1e79e0271cb7b1cf54517b4535913c234df8531bb3f81fada5b30ba87e81356c0c63c8c44d41134a852caf0f27caf5183fb21133cab0197399deb67
+\ No newline at end of file
++none
+\ No newline at end of file
+diff --git a/README.md b/README.md
+index 434fa0d..f55a76b 100644
+--- a/README.md
++++ b/README.md
+@@ -11,6 +11,8 @@ Currently, Carboxyl is in a WIP state with no ETA for release.
+ 
+ # Patch test. :)
+ 
++## Patch marker 2
++
+ ## Licensing
+ 
+ Carboxyl is licensed under the LGPLv3. *GPL libraries can use this without any issue; however, other libraries can ONLY use Carboxyl if the following terms are accepted:
+-- 
+2.54.0
+

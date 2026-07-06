@@ -1,0 +1,25 @@
+From 32ff3c20373b62bfbbae3772354fc0c0ed0bf515 Mon Sep 17 00:00:00 2001
+From: crueter <crueter@eden-emu.dev>
+Date: Tue, 30 Jun 2026 14:13:29 -0400
+Subject: [PATCH] add a test patch marker to readme.md
+
+---
+ README.md | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/README.md b/README.md
+index 3de4409..434fa0d 100644
+--- a/README.md
++++ b/README.md
+@@ -9,6 +9,8 @@ Carboxyl is a set of utility libraries for QML/Qt Quick, designed through years
+ 
+ Currently, Carboxyl is in a WIP state with no ETA for release.
+ 
++# Patch test. :)
++
+ ## Licensing
+ 
+ Carboxyl is licensed under the LGPLv3. *GPL libraries can use this without any issue; however, other libraries can ONLY use Carboxyl if the following terms are accepted:
+-- 
+2.54.0
+

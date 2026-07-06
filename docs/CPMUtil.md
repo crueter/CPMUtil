@@ -8,6 +8,7 @@ CPMUtil is a wrapper around CPM that aims to reduce boilerplate and add useful u
   - [Common Properties](#common-properties)
   - [Standard Packages](#standard-packages)
     - [Versioning](#versioning)
+    - [Artifact Naming Errata](#artifact-naming-errata)
     - [Patches](#patches)
   - [Pre-built CI Packages](#pre-built-ci-packages)
   - [Usage](#usage)
@@ -109,6 +110,7 @@ And may optionally define:
 
 - `url`: Download from a raw URL.
 - `artifact`: A GitHub/Forgejo/Gitea release artifact. Requires `repo` to be set and valid.
+- `numeric_version`: Replaces `%NUMERIC_VERSION%` in artifact and version definitions; see [Artifact Naming Errata](#artifact-naming-errata).
 
 See [Versioning](#versioning) for version/artifact information.
 
@@ -142,6 +144,26 @@ Take Boost as an example. The artifact for Boost 1.90.0 is `boost-1.90.0-cmake.t
 ```
 
 The artifact will then evaluate as `boost-1.90.0-cmake.tar.xz`.
+
+### Artifact Naming Errata
+
+While `%VERSION%` replacement is generally good enough for well-packaged projects, occasionally there may be some problematic packages. Take, for instance, Vulkan Validation Layers:
+
+- Tag (`version`): `vulkan-sdk-1.4.341.0`
+- Artifact: `android-binaries-1.4.341.0.zip`
+
+Attempting to add version replacement to the artifact definition **would not work here!** In this case, you must utilize the `numeric_version` field described earlier; we would set `numeric_version` to `1.4.341.0` and add `%NUMERIC_VERSION%` replacements into our artifact and version fields:
+
+```json
+"vulkan-validation-layers": {
+    "artifact": "android-binaries-%NUMERIC_VERSION%.zip",
+    "repo": "KhronosGroup/Vulkan-ValidationLayers",
+    "version": "vulkan-sdk-%NUMERIC_VERSION%",
+    "numeric_version": "1.4.341.0"
+},
+```
+
+`artifact` will thus evaluate to `android-binaries-1.4.341.0.zip`, and `version` to `vulkan-sdk-1.4.341.0`. CPMUtil's auto-updater will also account for this and only update `numeric_version`!
 
 ### Patches
 
