@@ -21,7 +21,7 @@ mktempdir(TMP)
 set(url "${host}/${repo}/${release}/${filename}")
 set(file ${TMP}/${filename})
 
-download(${url} ${file})
+cpm_download(${url} ${file})
 
 # Extract to current working directory
 file(ARCHIVE_EXTRACT
