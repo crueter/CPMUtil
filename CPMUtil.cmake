@@ -349,7 +349,7 @@ function(fetch_package)
     # Download
     set(file ${TMP}/${base_filename})
     cpm_download(${ARG_URL} ${file} ${ARG_HASH})
-    echo("Downloaded ${base_filename}")
+    message(DEBUG "Downloaded ${base_filename}")
 
     # Extract the downloaded archive
     # TODO: Moar error handling
@@ -393,7 +393,7 @@ function(fetch_package)
     file(COPY ${tmp_renamed} DESTINATION ${path_parent})
 
     # TODO: only echo this in script mode
-    echo("Extracted to ${abs_path}")
+    message(DEBUG "Extracted to ${abs_path}")
 
     # Apply patches
     apply_patches("${ARG_PATCHES}" "${abs_path}")
@@ -845,7 +845,7 @@ function(AddPackage)
         set(pkg_git_url ${PKG_ARGS_URL})
     endif()
 
-    cpm_utils_message(STATUS "${PKG_ARGS_NAME} download URL is ${PKG_ARGS_URL}")
+    cpm_utils_message(DEBUG "${PKG_ARGS_NAME} download URL is ${PKG_ARGS_URL}")
 
     if(NOT DEFINED PKG_ARGS_HASH)
         cpm_utils_message(FATAL_ERROR "${PKG_ARGS_NAME}: No hash defined")
