@@ -252,7 +252,7 @@ macro(cpm_find_program)
     # Windows needs additional paths for some utilities.
     if (CMAKE_HOST_WIN32)
         find_package(Git QUIET)
-        if(GIT_EXECUTABLE)
+        if(Git_FOUND)
             # Search within the Git for Windows paths.
             get_filename_component(extra_search_path
                 ${GIT_EXECUTABLE} DIRECTORY)
@@ -273,7 +273,6 @@ macro(cpm_find_program)
             endforeach()
 
             find_program(${ARGN} HINTS ${hints})
-            return()
         endif()
 
         # If no Git is found, continue as normal
