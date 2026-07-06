@@ -23,6 +23,10 @@ set(NO_CI TRUE)
 parse_script_args(args)
 
 foreach(key ${args})
+    if (ci)
+        continue()
+    endif()
+
     parse_key(${key})
     echo("-- ${key}")
 

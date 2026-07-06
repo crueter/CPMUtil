@@ -27,6 +27,10 @@ parse_script_args(args)
 
 get_cpmfile_content(cpmfile)
 foreach(key ${args})
+    if (ci)
+        continue()
+    endif()
+
     parse_key("${key}")
     echo("-- ${key}")
 

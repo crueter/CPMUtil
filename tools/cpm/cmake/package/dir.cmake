@@ -20,6 +20,8 @@ endfunction()
 
 parse_script_args(args)
 
+# TODO: CI packages.
+
 foreach(key ${args})
     parse_key(${key})
 

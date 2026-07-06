@@ -206,11 +206,11 @@ function(get_package_url)
 endfunction()
 
 # Get a package's cache path.
-function(get_cache_path package version out)
+function(get_cache_path package key out)
     string(TOLOWER ${package} lower_name)
 
     # TODO: Figure out a sln to CPM_SOURCE_CACHE; CPMConfig.cmake?
-    set(${out} ${CPM_SOURCE_CACHE}/${lower_name}/${version})
+    set(${out} ${CPM_SOURCE_CACHE}/${lower_name}/${key})
 
     return(PROPAGATE ${out})
 endfunction()
@@ -800,6 +800,7 @@ function(AddPackage)
         HASH
 
         URL
+        CUSTOM_KEY
 
         SOURCE_SUBDIR
         BUNDLED_PACKAGE
@@ -945,8 +946,14 @@ function(AddPackage)
 
     # Download/extract package
     if (${PKG_ARGS_NAME}_CUSTOM_DIR STREQUAL "")
+        if (DEFINED PKG_ARGS_CUSTOM_KEY)
+            set(key ${PKG_ARGS_CUSTOM_KEY})
+        else()
+            set(key ${PKG_ARGS_VERSION})
+        endif()
+
         # cache path
-        get_cache_path(${PKG_ARGS_NAME} ${PKG_ARGS_VERSION} cache_path)
+        get_cache_path(${PKG_ARGS_NAME} ${key} cache_path)
 
         fetch_package(
             URL "${PKG_ARGS_URL}"
@@ -1117,6 +1124,7 @@ function(AddCIPackage)
             REPO ${ARTIFACT_REPO}
             VERSION "v${ARTIFACT_VERSION}"
             ARTIFACT ${ARTIFACT}
+            CUSTOM_KEY "${ARTIFACT_VERSION}-${pkgname}"
             HASH ${sha512sum_hash}
             FORCE_BUNDLED_PACKAGE ON
             ${EXTRA_ARGS})
