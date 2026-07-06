@@ -529,7 +529,7 @@ function(SystemPackageViable JSON_NAME)
          AND NOT CPMUTIL_FORCE_SYSTEM))
         set(${package}_FOUND OFF)
     else()
-        find_package(${package} ${version} ${find_args} QUIET NO_POLICY_SCOPE)
+        find_package(${package} ${min_version} ${find_args} QUIET NO_POLICY_SCOPE)
     endif()
 
     set(${JSON_NAME}_VIABLE ${${package}_FOUND} PARENT_SCOPE)
