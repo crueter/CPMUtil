@@ -3,6 +3,9 @@
 
 set(BUILD_SHARED_LIBS OFF)
 
+# this has a nested cpmfile
+include(CPMUtil)
+
 AddJsonPackage(zlib)
 
 # ffmpeg fun

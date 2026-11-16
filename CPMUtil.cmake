@@ -33,17 +33,40 @@
 
 cmake_minimum_required(VERSION 3.31)
 
+# add a cpmfile if it exists here
+get_property(cpmutil_included GLOBAL PROPERTY CPMUTIL_INCLUDED)
+if(cpmutil_included)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cpmfile.json")
+        AddCpmfile("${CMAKE_CURRENT_SOURCE_DIR}/cpmfile.json")
+    endif()
+
+    return()
+endif()
+
+set_property(GLOBAL PROPERTY CPMUTIL_INCLUDED ON)
+
+##############
+# REGISTRIES #
+##############
+
+# packages
+set(CPMUTIL_PACKAGES "" CACHE INTERNAL "Packages registered by CPMUtil" FORCE)
+
+# cpmfiles
+set(CPMUTIL_CPMFILE_COUNT 0 CACHE INTERNAL "Number of registered cpmfiles" FORCE)
+set(CPMUTIL_CPMFILES "" CACHE INTERNAL "Indices of registered cpmfiles" FORCE)
+set(CPMUTIL_CPMFILE_PRIMARY 0 CACHE INTERNAL "Index of the primary cpmfile" FORCE)
+
+#########
+# SETUP #
+#########
+
+
 if(MSVC OR ANDROID OR IOS)
     set(BUNDLED_DEFAULT ON)
 else()
     set(BUNDLED_DEFAULT OFF)
 endif()
-
-# FIXME(crueter): Handle multiple cpmfiles
-include_guard(GLOBAL)
-
-# reset internal registry
-set(CPMUTIL_PACKAGES "" CACHE INTERNAL "Packages registered by CPMUtil" FORCE)
 
 # Root directory detection
 if (CMAKE_SCRIPT_MODE_FILE)
@@ -54,7 +77,11 @@ if (CMAKE_SCRIPT_MODE_FILE)
     endif()
 else()
     # A project exists, we can use its directory
-    set(CPMUTIL_ROOT ${PROJECT_SOURCE_DIR})
+    if(DEFINED PROJECT_SOURCE_DIR AND NOT "${PROJECT_SOURCE_DIR}" STREQUAL "")
+        set(CPMUTIL_ROOT ${PROJECT_SOURCE_DIR})
+    else()
+        set(CPMUTIL_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
 endif()
 
 set(CPM_SOURCE_CACHE "${CPMUTIL_ROOT}/.cache/cpm"
@@ -96,27 +123,8 @@ else()
     endif()
 endif()
 
-# cpmfile parsing
+# cpmfile path (registration occurs after AddCpmfile is defined below)
 set(CPMUTIL_JSON_FILE "${CPMUTIL_ROOT}/cpmfile.json")
-
-if(EXISTS ${CPMUTIL_JSON_FILE})
-    file(READ ${CPMUTIL_JSON_FILE} CPMFILE_CONTENT)
-
-    # Script mode doesn't support add_custom_target etc.
-    if (NOT CMAKE_SCRIPT_MODE_FILE)
-        if (NOT TARGET cpmfiles)
-            add_custom_target(cpmfiles)
-        endif()
-
-        target_sources(cpmfiles PRIVATE ${CPMUTIL_JSON_FILE})
-        set_property(DIRECTORY APPEND PROPERTY
-            CMAKE_CONFIGURE_DEPENDS
-            "${CPMUTIL_JSON_FILE}")
-    endif()
-else()
-    message(DEBUG "[CPMUtil] cpmfile ${CPMUTIL_JSON_FILE} "
-        "does not exist, AddJsonPackage will be a no-op")
-endif()
 
 ############
 # CPM CORE #
@@ -246,6 +254,105 @@ function(cpm_util_internal_parse_option OPTION)
     set(OPTION_KEY "${OPTION_KEY}" PARENT_SCOPE)
     set(OPTION_VALUE "${OPTION_VALUE}" PARENT_SCOPE)
 endfunction()
+
+# add a cpmfile to the registry
+function(AddCpmfile path)
+    set(oneValueArgs PATCH_DIR)
+    set(optionArgs OPTIONAL RELOAD)
+
+    cmake_parse_arguments(CPM_ARGS "${optionArgs}" "${oneValueArgs}" "" "${ARGN}")
+
+    if(NOT EXISTS "${path}")
+        if(CPM_ARGS_OPTIONAL)
+            message(DEBUG "[CPMUtil] cpmfile ${path} does not exist, skipping")
+            return()
+        endif()
+
+        cpm_util_message(FATAL_ERROR "cpmfile ${path} does not exist")
+    endif()
+
+    file(REAL_PATH "${path}" real_path)
+
+    # do not add an already added cpmfile
+    set(cpmfiles "${CPMUTIL_CPMFILES}")
+    foreach(i ${cpmfiles})
+        get_property(existing_path GLOBAL PROPERTY "CPMUTIL_CPMFILE_${i}_PATH")
+        if("${real_path}" STREQUAL "${existing_path}")
+            if(CPM_ARGS_RELOAD)
+                file(READ "${real_path}" content)
+                set_property(GLOBAL PROPERTY "CPMUTIL_CPMFILE_${i}_CONTENT" "${content}")
+
+                if(DEFINED CPM_ARGS_PATCH_DIR)
+                    set(patch_dir "${CPM_ARGS_PATCH_DIR}")
+                else()
+                    set(patch_dir "${CPMUTIL_PATCH_DIR}")
+                endif()
+
+                set_property(GLOBAL PROPERTY "CPMUTIL_CPMFILE_${i}_PATCH_DIR" "${patch_dir}")
+            endif()
+
+            return()
+        endif()
+    endforeach()
+
+    file(READ "${real_path}" content)
+
+    # note keys that are already defined by a higher-priority cpmfile
+    string(JSON new_len LENGTH "${content}")
+    if(new_len GREATER 0)
+        math(EXPR new_last "${new_len} - 1")
+        foreach(key_idx RANGE ${new_last})
+            string(JSON key MEMBER "${content}" ${key_idx})
+            foreach(existing_idx ${cpmfiles})
+                get_property(existing_content GLOBAL PROPERTY "CPMUTIL_CPMFILE_${existing_idx}_CONTENT")
+                string(JSON _dup ERROR_VARIABLE dup_err GET "${existing_content}" "${key}")
+
+                if(NOT dup_err)
+                    get_property(existing_path GLOBAL PROPERTY "CPMUTIL_CPMFILE_${existing_idx}_PATH")
+                    message(DEBUG "[CPMUtil] cpmfile ${real_path}: key '${key}' duplicates ${existing_path}")
+                endif()
+            endforeach()
+        endforeach()
+    endif()
+
+    math(EXPR idx "${CPMUTIL_CPMFILE_COUNT}")
+
+    set_property(GLOBAL PROPERTY "CPMUTIL_CPMFILE_${idx}_PATH" "${real_path}")
+    set_property(GLOBAL PROPERTY "CPMUTIL_CPMFILE_${idx}_CONTENT" "${content}")
+
+    if(DEFINED CPM_ARGS_PATCH_DIR)
+        set(patch_dir "${CPM_ARGS_PATCH_DIR}")
+    else()
+        set(patch_dir "${CPMUTIL_PATCH_DIR}")
+    endif()
+
+    set_property(GLOBAL PROPERTY "CPMUTIL_CPMFILE_${idx}_PATCH_DIR" "${patch_dir}")
+
+    # track the file for IDEs and reconfiguration
+    if(NOT CMAKE_SCRIPT_MODE_FILE)
+        if(NOT TARGET cpmfiles)
+            add_custom_target(cpmfiles)
+        endif()
+
+        target_sources(cpmfiles PRIVATE "${real_path}")
+        set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" APPEND PROPERTY
+            CMAKE_CONFIGURE_DEPENDS "${real_path}")
+    endif()
+
+    list(APPEND cpmfiles "${idx}")
+    math(EXPR next_count "${idx} + 1")
+    set(CPMUTIL_CPMFILE_COUNT ${next_count} CACHE INTERNAL "" FORCE)
+    set(CPMUTIL_CPMFILES "${cpmfiles}" CACHE INTERNAL "" FORCE)
+
+    # keep legacy root/primary variables
+    if(idx EQUAL CPMUTIL_CPMFILE_PRIMARY)
+        set(CPMFILE_CONTENT "${content}" PARENT_SCOPE)
+        set(CPMUTIL_JSON_FILE "${real_path}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+# register root cpmfile
+AddCpmfile("${CPMUTIL_JSON_FILE}" OPTIONAL)
 
 #############
 # UTILITIES #
@@ -620,13 +727,61 @@ endmacro()
 
 # Get cpmfile content
 function(get_cpmfile_content out)
-    set(${out} "${CPMFILE_CONTENT}" PARENT_SCOPE)
+    if(CPMUTIL_CPMFILE_COUNT GREATER 0)
+        get_property(content GLOBAL PROPERTY "CPMUTIL_CPMFILE_${CPMUTIL_CPMFILE_PRIMARY}_CONTENT")
+        set(${out} "${content}" PARENT_SCOPE)
+    else()
+        set(${out} "" PARENT_SCOPE)
+    endif()
 endfunction()
 
 # Get absolute path to cpmfile
 function(get_cpmfile_path out)
-    file(REAL_PATH ${CPMUTIL_JSON_FILE} ${out})
-    return(PROPAGATE ${out})
+    if(CPMUTIL_CPMFILE_COUNT GREATER 0)
+        get_property(path GLOBAL PROPERTY "CPMUTIL_CPMFILE_${CPMUTIL_CPMFILE_PRIMARY}_PATH")
+        set(${out} "${path}" PARENT_SCOPE)
+    else()
+        file(REAL_PATH "${CPMUTIL_JSON_FILE}" path)
+        set(${out} "${path}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+# Get the number of registered cpmfiles
+function(get_cpmfile_count out)
+    set(${out} "${CPMUTIL_CPMFILE_COUNT}" PARENT_SCOPE)
+endfunction()
+
+# Get the content of a registered cpmfile by index
+function(get_cpmfile_content_at index out)
+    get_property(content GLOBAL PROPERTY "CPMUTIL_CPMFILE_${index}_CONTENT")
+    set(${out} "${content}" PARENT_SCOPE)
+endfunction()
+
+# Get the path of a registered cpmfile by index
+function(get_cpmfile_path_at index out)
+    get_property(path GLOBAL PROPERTY "CPMUTIL_CPMFILE_${index}_PATH")
+    set(${out} "${path}" PARENT_SCOPE)
+endfunction()
+
+# Get the path of the first cpmfile defining a key
+function(get_cpmfile_path_for_key key out)
+    if(CPMUTIL_CPMFILE_COUNT LESS 1)
+        set(${out} "" PARENT_SCOPE)
+        return()
+    endif()
+
+    foreach(i ${CPMUTIL_CPMFILES})
+        get_property(content GLOBAL PROPERTY "CPMUTIL_CPMFILE_${i}_CONTENT")
+        string(JSON _object ERROR_VARIABLE err GET "${content}" "${key}")
+
+        if(NOT err)
+            get_property(path GLOBAL PROPERTY "CPMUTIL_CPMFILE_${i}_PATH")
+            set(${out} "${path}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+
+    set(${out} "" PARENT_SCOPE)
 endfunction()
 
 # idk
@@ -693,7 +848,7 @@ endfunction()
 
 # Determine whether or not a package has a viable system candidate.
 function(SystemPackageViable JSON_NAME)
-    string(JSON object GET "${CPMFILE_CONTENT}" "${JSON_NAME}")
+    get_json_object("${JSON_NAME}")
 
     parse_object(${object})
 
@@ -820,7 +975,7 @@ macro(parse_object object)
                 string(JSON _patch GET "${raw_patches}" "${IDX}")
 
                 set(full_patch
-                    "${CPMUTIL_PATCH_DIR}/${JSON_NAME}/${_patch}")
+                    "${CPMFILE_PATCH_DIR}/${JSON_NAME}/${_patch}")
                 if(NOT EXISTS ${full_patch})
                     cpm_util_message(FATAL_ERROR
                         "${JSON_NAME} specifies patch"
@@ -852,23 +1007,38 @@ endmacro()
 
 # Get the JSON object for a key. Outputs to "object"
 function(get_json_object key)
-    if(NOT DEFINED CPMFILE_CONTENT)
-        cpm_util_message(FATAL_ERROR "${key}: No cpmfile present")
-    endif()
-
     if(NOT DEFINED key)
         cpm_util_message(FATAL_ERROR "No JSON key specified")
     endif()
 
-    string(JSON object ERROR_VARIABLE
-        err GET "${CPMFILE_CONTENT}" "${key}")
-
-    if(err)
-        cpm_util_message(FATAL_ERROR "${key} not found in cpmfile\n"
-            "${err}")
+    if(CPMUTIL_CPMFILE_COUNT LESS 1)
+        cpm_util_message(FATAL_ERROR "${key}: No cpmfile present")
     endif()
 
-    Propagate(object)
+    set(searched "")
+    foreach(file ${CPMUTIL_CPMFILES})
+        get_property(path GLOBAL PROPERTY "CPMUTIL_CPMFILE_${file}_PATH")
+        get_property(content GLOBAL PROPERTY "CPMUTIL_CPMFILE_${file}_CONTENT")
+
+        string(JSON object ERROR_VARIABLE
+            err GET "${content}" "${key}")
+
+        if(err)
+            list(APPEND searched "${path}")
+        else()
+            get_property(patch_dir GLOBAL PROPERTY "CPMUTIL_CPMFILE_${file}_PATCH_DIR")
+
+            set(CPMFILE_INDEX "${file}" PARENT_SCOPE)
+            set(CPMFILE_PATH "${path}" PARENT_SCOPE)
+            set(CPMFILE_PATCH_DIR "${patch_dir}" PARENT_SCOPE)
+            set(object "${object}" PARENT_SCOPE)
+
+            return()
+        endif()
+    endforeach()
+
+    string(REPLACE ";" "\n  " searched_text "${searched}")
+    cpm_util_message(FATAL_ERROR "${key} not found in any cpmfile; tried:\n  ${searched_text}")
 endfunction()
 
 # Get the download URL given the parameters.
