@@ -570,19 +570,19 @@ endfunction()
 # compute a hash of all patch file contents
 # if there are no patches, returns none
 function(compute_patch_key patches out)
-  if(NOT patches)
-    set("${out}" "none" PARENT_SCOPE)
-    return()
-  endif()
+    if(NOT patches)
+        set("${out}" "none" PARENT_SCOPE)
+        return()
+    endif()
 
-  set(combined "")
-  foreach(PATCH ${patches})
-    file(READ "${PATCH}" contents)
-    string(APPEND combined "${contents}")
-  endforeach()
+    set(combined "")
+    foreach(PATCH ${patches})
+        file(READ "${PATCH}" contents)
+        string(APPEND combined "${contents}")
+    endforeach()
 
-  string(SHA512 key "${combined}")
-  set("${out}" "${key}" PARENT_SCOPE)
+    string(SHA512 key "${combined}")
+    set("${out}" "${key}" PARENT_SCOPE)
 endfunction()
 
 # Check if a package needs to be redownloaded. This can occur if:
@@ -698,10 +698,7 @@ function(SystemPackageViable JSON_NAME)
     parse_object(${object})
 
     string(REPLACE " " ";" find_args "${find_args}")
-    if(${package}_FORCE_BUNDLED OR
-        (CPMUTIL_FORCE_BUNDLED
-         AND NOT ${package}_FORCE_SYSTEM
-         AND NOT CPMUTIL_FORCE_SYSTEM))
+    if(${package}_FORCE_BUNDLED OR (CPMUTIL_FORCE_BUNDLED AND NOT ${package}_FORCE_SYSTEM AND NOT CPMUTIL_FORCE_SYSTEM))
         set(${package}_FOUND OFF)
     else()
         find_package(${package} ${min_version} ${find_args} QUIET NO_POLICY_SCOPE)
