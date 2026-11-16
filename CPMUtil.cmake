@@ -9,7 +9,7 @@ else()
     set(BUNDLED_DEFAULT OFF)
 endif()
 
-# TODO: Handle nested cpmutil includes
+# FIXME(crueter): Handle multiple cpmfiles
 
 # Root directory detection
 if (CMAKE_SCRIPT_MODE_FILE)
@@ -83,6 +83,12 @@ else()
     message(DEBUG "[CPMUtil] cpmfile ${CPMUTIL_JSON_FILE} "
         "does not exist, AddJsonPackage will be a no-op")
 endif()
+
+#################
+# OLD CPM.CMAKE #
+#################
+
+
 
 #############
 # UTILITIES #
@@ -217,7 +223,7 @@ endfunction()
 
 # Download a URL to file, with a sha512 hash
 # And retry 5 times
-function(cpm_download url file)
+function(cpm_util_download url file)
     list(LENGTH ARGN argn_len)
     if(argn_len GREATER 0)
         list(GET ARGN 0 hash)
@@ -347,7 +353,7 @@ function(fetch_package)
 
     # Download
     set(file ${TMP}/${base_filename})
-    cpm_download(${ARG_URL} ${file} ${ARG_HASH})
+    cpm_util_download(${ARG_URL} ${file} ${ARG_HASH})
     message(DEBUG "Downloaded ${base_filename}")
 
     # Extract the downloaded archive
@@ -445,7 +451,7 @@ function(needs_refetch path patch_key out)
 endfunction()
 
 # Message
-function(cpm_utils_message level)
+function(cpm_util_message level)
     string(REPLACE ";" " " message "${ARGN}")
     message(${level} "[CPMUtil] ${message}")
 endfunction()
@@ -509,6 +515,7 @@ function(get_json_element object out member)
 endfunction()
 
 # register a package to CPMUtil's global registry
+# TODO: use cache var
 function(cpmutil_register_package name url version)
     set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_NAMES ${name})
     set_property(GLOBAL APPEND PROPERTY CPM_PACKAGE_URLS ${url})
@@ -610,7 +617,7 @@ macro(parse_object object)
     get_json_element("${object}" git_host git_host "github.com")
 
     if (NOT version)
-        cpm_utils_message(FATAL_ERROR "${JSON_NAME}: version is required")
+        cpm_util_message(FATAL_ERROR "${JSON_NAME}: version is required")
     endif()
 
     if(ci)
@@ -649,7 +656,7 @@ macro(parse_object object)
                 set(full_patch
                     "${CPMUTIL_PATCH_DIR}/${JSON_NAME}/${_patch}")
                 if(NOT EXISTS ${full_patch})
-                    cpm_utils_message(FATAL_ERROR
+                    cpm_util_message(FATAL_ERROR
                         "${JSON_NAME} specifies patch"
                         "${full_patch} which does not exist")
                 endif()
@@ -680,18 +687,18 @@ endmacro()
 # Get the JSON object for a key. Outputs to "object"
 function(get_json_object key)
     if(NOT DEFINED CPMFILE_CONTENT)
-        cpm_utils_message(FATAL_ERROR "${key}: No cpmfile present")
+        cpm_util_message(FATAL_ERROR "${key}: No cpmfile present")
     endif()
 
     if(NOT DEFINED key)
-        cpm_utils_message(FATAL_ERROR "No JSON key specified")
+        cpm_util_message(FATAL_ERROR "No JSON key specified")
     endif()
 
     string(JSON object ERROR_VARIABLE
         err GET "${CPMFILE_CONTENT}" "${key}")
 
     if(err)
-        cpm_utils_message(FATAL_ERROR "${key} not found in cpmfile\n"
+        cpm_util_message(FATAL_ERROR "${key} not found in cpmfile\n"
             "${err}")
     endif()
 
@@ -817,11 +824,11 @@ function(AddPackage)
         "${ARGN}")
 
     if(NOT DEFINED PKG_ARGS_NAME)
-        cpm_utils_message(FATAL_ERROR "AddPackage: NAME is required")
+        cpm_util_message(FATAL_ERROR "AddPackage: NAME is required")
     endif()
 
     if(NOT DEFINED PKG_ARGS_VERSION)
-        cpm_utils_message(FATAL_ERROR "${PKG_ARGS_NAME}: VERSION is required")
+        cpm_util_message(FATAL_ERROR "${PKG_ARGS_NAME}: VERSION is required")
     endif()
 
     set(${PKG_ARGS_NAME}_CUSTOM_DIR "" CACHE STRING
@@ -844,10 +851,10 @@ function(AddPackage)
         set(pkg_git_url ${PKG_ARGS_URL})
     endif()
 
-    cpm_utils_message(DEBUG "${PKG_ARGS_NAME} download URL is ${PKG_ARGS_URL}")
+    cpm_util_message(DEBUG "${PKG_ARGS_NAME} download URL is ${PKG_ARGS_URL}")
 
     if(NOT DEFINED PKG_ARGS_HASH)
-        cpm_utils_message(FATAL_ERROR "${PKG_ARGS_NAME}: No hash defined")
+        cpm_util_message(FATAL_ERROR "${PKG_ARGS_NAME}: No hash defined")
     endif()
 
     #[[
@@ -940,7 +947,7 @@ function(AddPackage)
         list(APPEND EXTRA_ARGS DOWNLOAD_ONLY ON)
     endif()
 
-    cpm_utils_message(STATUS
+    cpm_util_message(STATUS
         "Using bundled package ${PKG_ARGS_NAME}@${PKG_ARGS_VERSION}")
 
     # Download/extract package
@@ -965,7 +972,7 @@ function(AddPackage)
         set(source_dir "${${PKG_ARGS_NAME}_CUSTOM_DIR}")
     endif()
 
-    CPMAddPackage(
+    cpm_util_internal_add_package(
         NAME ${PKG_ARGS_NAME}
         VERSION ${PKG_ARGS_VERSION}
         SOURCE_DIR ${source_dir}
@@ -1013,19 +1020,19 @@ function(AddCIPackage)
         ${ARGN})
 
     if(NOT DEFINED PKG_ARGS_VERSION)
-        cpm_utils_message(FATAL_ERROR "VERSION is required")
+        cpm_util_message(FATAL_ERROR "VERSION is required")
     endif()
 
     if(NOT DEFINED PKG_ARGS_NAME)
-        cpm_utils_message(FATAL_ERROR "NAME is required")
+        cpm_util_message(FATAL_ERROR "NAME is required")
     endif()
 
     if(NOT DEFINED PKG_ARGS_REPO)
-        cpm_utils_message(FATAL_ERROR "REPO is required")
+        cpm_util_message(FATAL_ERROR "REPO is required")
     endif()
 
     if(NOT DEFINED PKG_ARGS_PACKAGE)
-        cpm_utils_message(FATAL_ERROR "PACKAGE is required")
+        cpm_util_message(FATAL_ERROR "PACKAGE is required")
     endif()
 
     if(NOT DEFINED PKG_ARGS_EXTENSION)
@@ -1066,7 +1073,7 @@ function(AddCIPackage)
     elseif(APPLE)
         set(platname macos)
     else()
-        cpm_utils_message(WARNING
+        cpm_util_message(WARNING
             "Unsupported platform ${CMAKE_SYSTEM_NAME} for CI packages")
     endif()
 
@@ -1081,7 +1088,7 @@ function(AddCIPackage)
     elseif(ANDROID AND CPMUTIL_AMD64)
         set(archname x86_64)
     else()
-        cpm_utils_message(WARNING
+        cpm_util_message(WARNING
             "Unsupported platform/arch combo for CI packages")
     endif()
 
@@ -1132,7 +1139,7 @@ function(AddCIPackage)
         Propagate(${ARTIFACT_PACKAGE}_SOURCE_DIR)
         Propagate(CMAKE_PREFIX_PATH)
     else()
-        cpm_utils_message(FATAL_ERROR "${ARTIFACT_NAME}:"
+        cpm_util_message(FATAL_ERROR "${ARTIFACT_NAME}:"
             "Unsupported platform ${pkgname} for CI package")
     endif()
 endfunction()

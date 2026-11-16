@@ -124,7 +124,7 @@ function(get_package_hash url out)
     get_filename_component(filename ${url} NAME)
     set(file ${TMP}/${filename})
 
-    cpm_download("${url}" "${file}")
+    cpm_util_download("${url}" "${file}")
     file(SHA512 ${file} ${out})
 
     file(REMOVE_RECURSE ${TMP})
@@ -132,11 +132,11 @@ function(get_package_hash url out)
 endfunction()
 
 # Download and put the content into a variable.
-function(cpm_download_var url out)
+function(cpm_util_download_var url out)
     mktempdir(TMP)
 
     set(file ${TMP}/tmp)
-    cpm_download("${url}" "${file}")
+    cpm_util_download("${url}" "${file}")
     file(READ ${file} ${out})
 
     file(REMOVE_RECURSE ${TMP})
@@ -207,7 +207,7 @@ function(get_latest_tag out)
     string(REGEX REPLACE "-$|^-" "" t_numeric_version "${numeric_version}")
 
     # now api req
-    cpm_download_var("${api}${endpoint}" tags)
+    cpm_util_download_var("${api}${endpoint}" tags)
 
     string(JSON len LENGTH ${tags})
     math(EXPR last_index "${len} - 1")
