@@ -2,7 +2,13 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 if (NOT WIN32)
-    AddJsonPackage(ffmpeg)
+    AddCIPackage(
+        NAME ffmpeg
+        PACKAGE FFmpeg
+        VERSION 8.2-f16c3cc5aa
+        REPO crueter-ci/FFmpeg-Qt
+        MODULE)
+
     set(FFMPEG_DIR "${FFmpeg_SOURCE_DIR}")
 endif()
 
