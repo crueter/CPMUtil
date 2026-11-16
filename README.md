@@ -1,6 +1,6 @@
 # CPMUtil
 
-CPMUtil is a high-performance wrapper around [CMake Package Manager](https://github.com/cpm-cmake/CPM.cmake). It aims to reduce boilerplate and add useful utility functions and tooling to make dependency management a piece of cake.
+CPMUtil is a flexible, painless dependency manager for CMake, in the spirit of [CMake Package Manager](https://github.com/cpm-cmake/CPM.cmake). It aims to reduce boilerplate and add useful utility functions and tooling to make dependency management a piece of cake.
 
 ## Abstract
 
@@ -48,13 +48,14 @@ See the [tooling docs](./tools/cpm).
 
 ## Hosts
 
-Currently, CPMUtil only supports GitHub, Gitea, and Forgejo. GitLab is not supported and probably won't ever be.
+Currently, CPMUtil only supports GitHub, Gitea, and Forgejo. GitLab is not supported.
+
+Future refactors may introduce support for GitLab if there is demand.
 
 ## Usage in Projects
 
 You are recommended to copy:
 
-- `CPM.cmake`
 - `CPMUtil.cmake`
 - `tools`
 - `docs/CPMUtil.md`

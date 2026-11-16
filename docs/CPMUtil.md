@@ -14,7 +14,7 @@ CPMUtil is a wrapper around CPM that aims to reduce boilerplate and add useful u
   - [Usage](#usage)
   - [Addendum: Cache Storage](#addendum-cache-storage)
   - [Addendum: Making Patches](#addendum-making-patches)
-  - [Addendum: Package Identification Lists](#addendum-package-identification-lists)
+  - [Addendum: Package Identification](#addendum-package-identification)
   - [Addendum: Notes for Packagers](#addendum-notes-for-packagers)
     - [Network Sandbox](#network-sandbox)
     - [Unsandboxed](#unsandboxed)
@@ -243,15 +243,31 @@ CPMUtil has a dedicated command for making patches. You're recommended to have G
 
 And you're done! CPMUtil will automatically create and name the patch, and add it to the list of patches in the JSON definition.
 
-## Addendum: Package Identification Lists
+## Addendum: Package Identification
 
-CPMUtil will create three lists of dependencies where `AddPackage` or similar was used. Each is in order of addition.
+CPMUtil provides an internal cache variable, `CPMUTIL_PACKAGES`, that tracks *all* package names that have been added by `AddPackage` or any of its wrappers. This list is populated in the order of calling. Each package name then defines three properties stored in the cache, prefixed with `CPMUTIL_PACKAGE_${name}_`:
 
-- `CPM_PACKAGE_NAMES`: The names of packages included by CPMUtil
-- `CPM_PACKAGE_URLS`: The URLs to project/repo pages of packages
-- `CPM_PACKAGE_SHAS`: Short version identifiers for each package
-  - If the package was included as a system package, `(system)` is appended thereafter
-  - Packages whose versions can't be deduced will be left as `unknown`.
+- `VERSION`: The bundled or system version of the package.
+- `URL`: The upstream git or homepage URL of the package.
+- `SYSTEM`: Whether or not the package is a system package.
+- `SOURCE_DIR`: The bundled source directory of the package. You usually don't need to use this.
+- `BINARY_DIR`: The build directory of the package. You usually don't need to use this.
+
+You can then loop through all package names and grab their individual properties:
+
+```cmake
+foreach(pkg ${CPMUTIL_PACKAGES})
+    set(sys ${CPMUTIL_PACKAGE_${pkg}_SYSTEM})
+    set(url ${CPMUTIL_PACKAGE_${pkg}_URL})
+    set(version ${CPMUTIL_PACKAGE_${pkg}_VERSION})
+
+    if (sys)
+        set(version "${version} (system)")
+    endif()
+
+    message(STATUS "Package ${pkg} version ${version}: ${url}")
+endforeach()
+```
 
 For an example of how this might be implemented in an application, see Eden's implementation:
 
