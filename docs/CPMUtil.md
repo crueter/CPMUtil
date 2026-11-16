@@ -395,7 +395,7 @@ Do note, however, that this will render the package incompatible with CPMUtil's 
 ## Addendum: Multiple cpmfiles
 
 >[!WARNING]
-> This is a highly experimental feature and is not ready for real-world use.
+> This is a **highly** experimental feature and is not ready for real-world use.
 >
 > Even when it is, libraries should be careful when using CPMUtil.
 > You should instead have the consumer handle dependencies on their own.
@@ -438,17 +438,24 @@ AddCpmfile supports these options:
 
 - `OPTIONAL`: Don't error out if the file doesn't exist
 - `RELOAD`: If the file has already been registered, re-read it
+  - Without this option, attempting to add the same cpmfile twice is a no-op.
 - `PATCH_DIR`: Specify a custom patch dir for that file. If unset, `CPMUTIL_PATCH_DIR` is used.
 
 ### Subproject Patches
 
-Patches will, by default, resolve against `CPMUTIL_PATCH_DIR`. Since this is a cached variable, projects that expect to be used as a subproject should manually set their patch directory to ensure CPMUtil knows what to do:
+Patches will, by default, resolve against `CPMUTIL_PATCH_DIR`. Since this is a cached variable, projects that expect to be used as a subproject should manually set their patch directory to ensure CPMUtil knows what to do (before `include(CPMUtil)`):
 
 ```cmake
 set(CPMUTIL_PATCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.patch")
 ```
 
-This will not override the cached variable for the parent project.
+This will not override the cached variable for the parent project. If you wish to change the patch directory at any later point, you can call `AddCpmfile` later with `RELOAD` and `PATCH_DIR`:
+
+```cmake
+AddCpmfile("cpmfile.json" RELOAD PATCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Data/Patches")
+```
+
+You can also do this *instead of* the earlier set call if you wish.
 
 >[!WARNING]
 > This behavior is subject to change and is still considered experimental. Use with caution.
