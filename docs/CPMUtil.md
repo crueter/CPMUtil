@@ -28,6 +28,11 @@ CPMUtil is a wrapper around CPM that aims to reduce boilerplate and add useful u
     - [Checksumming](#checksumming)
     - [Caching](#caching)
     - [Immutable Commit Hashes](#immutable-commit-hashes)
+  - [Addendum: Multiple cpmfiles](#addendum-multiple-cpmfiles)
+    - [Automatic Registration](#automatic-registration)
+    - [Manual Registration](#manual-registration)
+    - [Subproject Patches](#subproject-patches)
+    - [Tooling](#tooling)
 
 ## Global Options
 
@@ -386,3 +391,69 @@ CPMUtil uses a mutable cache system, stored by default in `.cache/cpm`. Dependen
 CPMUtil is capable of using immutable Git commit hashes for its artifacts. These are (barring SHA1 collisions) completely immune to supply chain attacks--that is, unless the entire root server gets compromised to serve infected artifacts/source code; at which point there are much larger issues to worry about. This means that once you set a package to use a Git commit hash for its version, **it will stay the same forever**. This is useful if you want to ensure that consumers are never faced with download failures stemming from hash mismatches in case of compromised artifacts.
 
 Do note, however, that this will render the package incompatible with CPMUtil's built-in auto-updater, so you will have to manually update the package.
+
+## Addendum: Multiple cpmfiles
+
+>[!WARNING]
+> This is a highly experimental feature and is not ready for real-world use.
+>
+> Even when it is, libraries should be careful when using CPMUtil.
+> You should instead have the consumer handle dependencies on their own.
+> This feature is moreso meant for splitting very large cpmfiles up into several directories,
+> or for *simple* handling of projects that include other non-library projects that also use CPMUtil.
+
+CPMUtil can use more than one `cpmfile.json` in a single project. This is useful for projects with subprojects or vendored components that define their own dependencies.
+
+### Automatic Registration
+
+When `CPMUtil` is included a second time, CPMUtil registers that directory's `cpmfile.json` if it exists:
+
+```cmake
+# root/CMakeLists.txt
+include(CPMUtil)
+add_subdirectory(sub)
+
+# sub/CMakeLists.txt
+include(CPMUtil)
+```
+
+The root cpmfile's definitions always take precedence if the same key appears in more than one file. This is usually harmless unless your packages are wildly different in version. You can track these by configuring with `--log-level=DEBUG` and looking for lines such as:
+
+```txt
+-- [CPMUtil] cpmfile tests/ffmpeg/cpmfile.json: key 'ffmpeg' duplicates tests/cpmfile.json
+-- [CPMUtil] cpmfile tests/ffmpeg/cpmfile.json: key 'openssl' duplicates tests/cpmfile.json
+-- [CPMUtil] cpmfile tests/ffmpeg/cpmfile.json: key 'zlib' duplicates tests/cpmfile.json
+```
+
+### Manual Registration
+
+You can also manually register a cpmfile:
+
+```cmake
+AddCpmfile("/path/to/cpmfile.json")
+AddCpmfile("/path/to/optional.json" OPTIONAL)
+```
+
+AddCpmfile supports these options:
+
+- `OPTIONAL`: Don't error out if the file doesn't exist
+- `RELOAD`: If the file has already been registered, re-read it
+- `PATCH_DIR`: Specify a custom patch dir for that file. If unset, `CPMUTIL_PATCH_DIR` is used.
+
+### Subproject Patches
+
+Patches will, by default, resolve against `CPMUTIL_PATCH_DIR`. Since this is a cached variable, projects that expect to be used as a subproject should manually set their patch directory to ensure CPMUtil knows what to do:
+
+```cmake
+set(CPMUTIL_PATCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.patch")
+```
+
+This will not override the cached variable for the parent project.
+
+>[!WARNING]
+> This behavior is subject to change and is still considered experimental. Use with caution.
+> If you are defining multiple cpmfiles in your own project, the best practice is to place all patches in the root.
+
+### Tooling
+
+Currently all of CPMUtil's shell tooling acts on the root cpmfile only. This will be changed in a future revision.
