@@ -199,10 +199,7 @@ To use them, you must add `ci: true` to your package definition. Alongside the c
 
 - `name`: The artifacts' name prefix (required), e.g. `openssl`
 - `extension`: The artifacts' extension (default `tar.zst`)
-- `disabled_platforms`: CPMUtil-supported platforms that are not built into this repository.
-  - This is subject to change.
-
-**Note that `package` is subject to removal here.**
+- `package`: While CI packages will never attempt to find a system package, you should still include this so future calls to `find_package` will be overwritten with the bundled package.
 
 Example:
 
@@ -210,12 +207,13 @@ Example:
 "sdl2": {
     "repo": "crueter-ci/SDL2",
     "package": "SDL2",
-    "min_version": "2.26.4",
     "ci": true,
     "version": "2.32.10-a65111bd2d",
     "artifact": "SDL2"
 },
 ```
+
+CI packages also define a `hashes` map, mapping platform names (e.g. `linux-amd64`) to the corresponding artifact sha512sum. Using `package add` or `package version` in the CPMUtil script suite will handle this for you.
 
 ## Usage
 

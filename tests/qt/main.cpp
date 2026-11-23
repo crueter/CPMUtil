@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
     player->setAudioOutput(audioOutput);
     player->setVideoOutput(videoWidget);
-    player->setSource(QUrl("https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_720p_h264.mov"));
+    player->setSource(QUrl("https://www.papytane.com/mp4/airelles.mp4"));
 
     // floating camera
     QCamera *camera = new QCamera(QMediaDevices::defaultVideoInput(), &window);

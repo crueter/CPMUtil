@@ -7,11 +7,14 @@ AddJsonPackage(zlib)
 
 # ffmpeg fun
 
-if (NOT APPLE)
+if (WIN32)
     AddJsonPackage(openssl)
+else()
+    # TODO: bundled cert
+    find_package(OpenSSL REQUIRED)
 endif()
 
-AddJsonPackage(ffmpeg)
+AddJsonPackage(NAME ffmpeg DOWNLOAD_ONLY)
 
 set(FFMPEG_INCLUDE_DIR ${ffmpeg_SOURCE_DIR}/include)
 set(FFMPEG_LIB_DIR ${ffmpeg_SOURCE_DIR}/lib)
@@ -81,8 +84,11 @@ if(APPLE)
         find_library(${fw}_LIBRARY ${fw} REQUIRED)
         list(APPEND FFmpeg_HWACCEL_LIBRARIES ${${fw}_LIBRARY})
     endforeach()
+endif()
 
-    list(APPEND FFmpeg_HWACCEL_LIBRARIES bz2)
+# TODO: windows
+if (NOT WIN32)
+    list(APPEND FFmpeg_HWACCEL_LIBRARIES bz2 tiff lzma)
 endif()
 
 add_executable(test_ffmpeg main.cpp)

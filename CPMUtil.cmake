@@ -258,7 +258,7 @@ macro(echo)
         execute_process(COMMAND ${CMAKE_COMMAND} -E echo
             "${message}")
     else()
-        message(STATUS "${message}")
+        message(DEBUG "${message}")
     endif()
 endmacro()
 
@@ -282,47 +282,6 @@ endmacro()
 macro(sleep time)
     execute_process(COMMAND ${CMAKE_COMMAND} -E sleep ${time})
 endmacro()
-
-# Analogous to GNU mktemp, with fallbacks
-function(mktempdir out)
-    # shell out to system mktemp if available
-    find_program(MKTEMP_EXECUTABLE mktemp)
-    if (MKTEMP_EXECUTABLE)
-        execute_process(COMMAND mktemp -d
-            OUTPUT_VARIABLE dir
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            RESULT_VARIABLE ret)
-
-        if (ret EQUAL 0)
-            set(${out} "${dir}" PARENT_SCOPE)
-            return()
-        endif()
-    endif()
-
-    string(RANDOM LENGTH 10 rand_str)
-    set(tmp_str "tmp.${rand_str}")
-
-    # create something in /tmp if it exists
-    if(EXISTS "/tmp" AND IS_DIRECTORY "/tmp")
-        set(dir "/tmp/${tmp_str}")
-        file(MAKE_DIRECTORY "${dir}" RESULT res)
-        if (res EQUAL 0)
-            set(${out} "${dir}" PARENT_SCOPE)
-            return()
-        endif()
-    endif()
-
-    # tmpdir does not exist, extremely legacy mode
-    set(dir "${CMAKE_CURRENT_LIST_DIR}/.tmp/${tmp_str}")
-    file(MAKE_DIRECTORY "${dir}" RESULT res)
-    if (res EQUAL 0)
-        set(${out} "${dir}" PARENT_SCOPE)
-        return()
-    endif()
-
-    fatal("Fatal: Could not create temporary directory. "
-        "Check write permissions to the current directory")
-endfunction()
 
 # Get a package's effective URL.
 function(get_package_url)
@@ -381,6 +340,7 @@ endfunction()
 # Download a URL to file, with a sha512 hash
 # And retry 5 times
 function(cpm_util_download url file)
+    echo("Downloading ${url} to ${file}")
     list(LENGTH ARGN argn_len)
     if(argn_len GREATER 0)
         list(GET ARGN 0 hash)
@@ -392,8 +352,7 @@ function(cpm_util_download url file)
     foreach(i RANGE 5)
         file(DOWNLOAD ${url} ${file}
             ${args}
-            STATUS ret
-            LOG log)
+            STATUS ret)
 
         list(GET ret 0 code)
         if (code EQUAL 0)
@@ -502,60 +461,47 @@ function(fetch_package)
         return()
     endif()
 
-    # Temporary directory.
-    mktempdir(TMP)
-
-    # Get filename from URL
-    get_filename_component(base_filename ${ARG_URL} NAME)
-
-    # Download
-    set(file ${TMP}/${base_filename})
-    cpm_util_download(${ARG_URL} ${file} ${ARG_HASH})
-    message(DEBUG "Downloaded ${base_filename}")
-
-    # Extract the downloaded archive
-    # TODO: Moar error handling
-    set(dir ${TMP}/${base_filename}-extracted)
-    file(MAKE_DIRECTORY ${dir})
-
-    file(ARCHIVE_EXTRACT
-        INPUT ${file}
-        DESTINATION ${dir})
-
-    # This is copied near-verbatim from ExternalProject/extractfile.cmake.in
-
-    # If there's just one subdirectory and nothing else, move it
-    file(GLOB contents "${dir}/*")
-    list(REMOVE_ITEM contents "${dir}/.DS_Store")
-    list(LENGTH contents n)
-
-    # If n == 1 and contents points to a directory, this is a GitHub-style pack
-    # In this case contents points to the subdir which will get renamed
-    # If not, contents will point to the parent dir which will get renamed
-    if (NOT n EQUAL 1 OR NOT IS_DIRECTORY "${contents}")
-        set(contents "${dir}")
-    endif()
-
-    file(REAL_PATH "${contents}" contents_abs)
-
     # paths
     cmake_path(ABSOLUTE_PATH ARG_PATH
         NORMALIZE
         OUTPUT_VARIABLE abs_path)
 
     cmake_path(GET abs_path PARENT_PATH path_parent)
-    cmake_path(GET abs_path FILENAME path_name)
+    file(MAKE_DIRECTORY ${path_parent})
 
-    # rename tmp dir
-    set(tmp_renamed "${TMP}/${path_name}")
-    file(RENAME "${contents_abs}" "${tmp_renamed}")
+    # Get filename from URL
+    get_filename_component(base_filename ${ARG_URL} NAME)
 
-    # now copy
-    # TODO: Error handling beyond what cmake does????
-    file(COPY ${tmp_renamed} DESTINATION ${path_parent})
+    # Download
+    set(file ${path_parent}/${base_filename})
+    cpm_util_download(${ARG_URL} ${file} ${ARG_HASH})
+    echo("Downloaded ${base_filename}")
+
+    # Extract
+    echo("Extracting ${file}...")
+    file(ARCHIVE_EXTRACT
+        INPUT ${file}
+        DESTINATION ${abs_path})
+
+    # This is copied near-verbatim from ExternalProject/extractfile.cmake.in
+
+    # If there's just one subdirectory and nothing else, move it
+    file(GLOB contents "${abs_path}/*")
+    list(REMOVE_ITEM contents "${abs_path}/.DS_Store")
+    list(LENGTH contents n)
+
+    # If n == 1 and contents points to a directory, this is a GitHub-style pack
+    # In this case contents points to the subdir which will get renamed
+    # If not, contents will point to the parent dir which will get renamed
+    if (n EQUAL 1 AND IS_DIRECTORY "${contents}")
+        set(temp_path "${abs_path}_tmp")
+        file(RENAME "${contents}" "${temp_path}")
+        file(REMOVE_RECURSE "${abs_path}")
+        file(RENAME "${temp_path}" "${abs_path}")
+    endif()
 
     # TODO: only echo this in script mode
-    message(DEBUG "Extracted to ${abs_path}")
+    echo("Extracted to ${abs_path}")
 
     # Apply patches
     apply_patches("${ARG_PATCHES}" "${abs_path}")
@@ -564,7 +510,7 @@ function(fetch_package)
     file(WRITE "${abs_path}/.cpm_patch_key" ${ARG_PATCH_KEY})
 
     # done! :)
-    file(REMOVE_RECURSE ${TMP})
+    file(REMOVE_RECURSE ${file})
 endfunction()
 
 # compute a hash of all patch file contents
@@ -760,16 +706,13 @@ endfunction()
 macro(process_version_replacements)
     # numeric version text replacement
     if (numeric_version)
-        string(REPLACE "%NUMERIC_VERSION%" "${numeric_version}"
-            version ${version})
-        string(REPLACE "%NUMERIC_VERSION%" "${numeric_version}"
-            artifact ${artifact})
+        string(REPLACE "%NUMERIC_VERSION%" "${numeric_version}" version ${version})
+        string(REPLACE "%NUMERIC_VERSION%" "${numeric_version}" artifact ${artifact})
     endif()
 
     # version text replacement
     if (artifact)
-        string(REPLACE "%VERSION%" "${version}"
-            artifact ${artifact})
+        string(REPLACE "%VERSION%" "${version}" artifact ${artifact})
     endif()
 endmacro()
 
@@ -779,7 +722,6 @@ macro(parse_object object)
     get_json_element("${object}" repo repo)
     get_json_element("${object}" ci ci OFF)
     get_json_element("${object}" version version)
-    get_json_element("${object}" min_version min_version)
     get_json_element("${object}" git_host git_host "github.com")
 
     if (NOT version)
@@ -789,14 +731,7 @@ macro(parse_object object)
     if(ci)
         get_json_element("${object}" name name "${JSON_NAME}")
         get_json_element("${object}" extension extension "tar.zst")
-        get_json_element("${object}" raw_disabled disabled_platforms)
-
-        if(raw_disabled)
-            array_to_list("${raw_disabled}"
-                ${raw_disabled_LENGTH} disabled_platforms)
-        else()
-            set(disabled_platforms "")
-        endif()
+        get_json_element("${object}" hashes hashes)
     else()
         # TODO: correct hash if missing
         get_json_element("${object}" hash hash)
@@ -808,6 +743,7 @@ macro(parse_object object)
         get_json_element("${object}" find_args find_args)
         get_json_element("${object}" skip_updates skip_updates OFF)
         get_json_element("${object}" raw_patches patches)
+        get_json_element("${object}" min_version min_version)
 
         process_version_replacements()
 
@@ -918,7 +854,7 @@ function(AddJsonPackage)
             REPO "${repo}"
             PACKAGE "${package}"
             EXTENSION "${extension}"
-            DISABLED_PLATFORMS "${disabled_platforms}"
+            HASHES "${hashes}"
 
             GIT_HOST "${git_host}"
 
@@ -1186,9 +1122,10 @@ function(AddCIPackage)
         PACKAGE
         EXTENSION
         MIN_VERSION
-        GIT_HOST)
+        GIT_HOST
+        HASHES)
 
-    set(multiValueArgs DISABLED_PLATFORMS)
+    set(multiValueArgs)
 
     set(optionArgs MODULE_PATH)
 
@@ -1226,10 +1163,6 @@ function(AddCIPackage)
         set(ARTIFACT_GIT_HOST "${PKG_ARGS_GIT_HOST}")
     endif()
 
-    if(DEFINED PKG_ARGS_DISABLED_PLATFORMS)
-        set(DISABLED_PLATFORMS ${PKG_ARGS_DISABLED_PLATFORMS})
-    endif()
-
     # this is mildly annoying
     set(ARTIFACT_VERSION ${PKG_ARGS_VERSION})
     set(ARTIFACT_NAME ${PKG_ARGS_NAME})
@@ -1256,66 +1189,43 @@ function(AddCIPackage)
             "Unsupported platform ${CMAKE_SYSTEM_NAME} for CI packages")
     endif()
 
-    if (APPLE AND NOT IOS)
-        set(archname universal)
-    elseif((WIN32 OR LINUX) AND CPMUTIL_AMD64)
+    if (CPMUTIL_AMD64)
         set(archname amd64)
-    elseif(WIN32 AND CPMUTIL_ARM64)
-        set(archname arm64)
-    elseif((IOS OR LINUX OR ANDROID) AND CPMUTIL_ARM64)
+    elseif(CPMUTIL_ARM64)
         set(archname aarch64)
-    elseif(ANDROID AND CPMUTIL_AMD64)
-        set(archname x86_64)
-    else()
-        cpm_util_message(WARNING
-            "Unsupported platform/arch combo for CI packages")
+    elseif(CPMUTIL_RISCV64)
+        set(archname riscv64)
     endif()
 
     if (DEFINED platname AND DEFINED archname)
         set(pkgname ${platname}-${archname})
     endif()
 
-    if (DEFINED pkgname
-        AND NOT "${pkgname}" IN_LIST DISABLED_PLATFORMS)
-        set(ARTIFACT
-            "${ARTIFACT_NAME}-${pkgname}-${ARTIFACT_VERSION}.${ARTIFACT_EXT}")
+    if(DEFINED pkgname)
+        if (NOT "${PKG_ARGS_HASHES}" STREQUAL "")
+            string(JSON pkg_hash GET "${PKG_ARGS_HASHES}" "${pkgname}")
 
-        if (PKG_ARGS_MODULE_PATH)
-            set(EXTRA_ARGS MODULE_PATH)
+            if(NOT DEFINED pkg_hash OR pkg_hash STREQUAL "null")
+                message(FATAL_ERROR "CI package ${ARTIFACT_NAME} does not define a package for ${pkgname}.")
+            endif()
+        else()
+            message(FATAL_ERROR "CI package ${ARTIFACT_NAME} does not define a sha512sum hash map.")
         endif()
 
-        # download sha512sum file
-        # TODO: CI pkgs
-        set(sha512sum_url
-            "https://${ARTIFACT_GIT_HOST}/${ARTIFACT_REPO}/releases/download/v${ARTIFACT_VERSION}/${ARTIFACT}.sha512sum")
-        set(sha512sum_file
-            "${CMAKE_CURRENT_BINARY_DIR}/.cpmutil_${ARTIFACT}_sha512sum")
-
-        file(DOWNLOAD "${sha512sum_url}" "${sha512sum_file}"
-            STATUS sha512sum_status)
-        list(GET sha512sum_status 0 sha512sum_error)
-
-        if(sha512sum_error)
-            message(FATAL_ERROR "[CPMUtil] Failed to download sha512sum "
-                "for ${ARTIFACT_NAME} from ${sha512sum_url}")
-        endif()
-
-        file(READ "${sha512sum_file}" sha512sum_hash)
-        string(STRIP "${sha512sum_hash}" sha512sum_hash)
-        file(REMOVE "${sha512sum_file}")
-
+        set(ARTIFACT "${ARTIFACT_NAME}-${pkgname}-${ARTIFACT_VERSION}.${ARTIFACT_EXT}")
         AddPackage(
             NAME ${ARTIFACT_PACKAGE}
             REPO ${ARTIFACT_REPO}
-            VERSION "v${ARTIFACT_VERSION}"
+            VERSION ${ARTIFACT_VERSION}
             ARTIFACT ${ARTIFACT}
             CUSTOM_KEY "${ARTIFACT_VERSION}-${pkgname}"
-            HASH ${sha512sum_hash}
+            HASH ${pkg_hash}
             FORCE_BUNDLED_PACKAGE ON
             ${EXTRA_ARGS})
 
         set(${ARTIFACT_PACKAGE}_ADDED TRUE PARENT_SCOPE)
         Propagate(${ARTIFACT_PACKAGE}_SOURCE_DIR)
+        Propagate(${ARTIFACT_PACKAGE}_BINARY_DIR)
         Propagate(CMAKE_PREFIX_PATH)
     else()
         cpm_util_message(FATAL_ERROR "${ARTIFACT_NAME}:"
@@ -1338,8 +1248,6 @@ function(AddQt repo version)
         PACKAGE Qt6
         VERSION ${version}
         REPO ${repo}
-        DISABLED_PLATFORMS
-            android-x86_64 android-aarch64
         MODULE_PATH)
 
     find_package(Qt6 REQUIRED PATHS ${Qt6_SOURCE_DIR} NO_DEFAULT_PATH)

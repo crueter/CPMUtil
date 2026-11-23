@@ -54,18 +54,30 @@ get_json_element("${object}" artifact artifact)
 # Redo version replacements
 process_version_replacements()
 
-get_package_url_object(pkg_url)
-get_package_hash("${pkg_url}" pkg_hash)
+if (ci)
+    set(ARTIFACT_NAME ${artifact})
+    set(ARTIFACT_VERSION ${version})
+    set(ARTIFACT_EXT ${extension})
+    set(ARTIFACT_GIT_HOST ${git_host})
+    set(ARTIFACT_REPO ${repo})
 
-if (numeric_version)
-    modify_package_numeric("${object}"
-        "${NEW_VERSION}" "${pkg_hash}" new_object)
+    ci_collect_all_hashes(hashes)
+
+    string(JSON object SET "${object}" hashes "${hashes}")
+    modify_package("${object}" "${NEW_VERSION}" "" new_object)
 else()
-    modify_package("${object}" "${NEW_VERSION}" "${pkg_hash}" new_object)
+    get_package_url_object(pkg_url)
+    get_package_hash("${pkg_url}" pkg_hash)
+
+    if (numeric_version)
+        modify_package_numeric("${object}" "${NEW_VERSION}" "${pkg_hash}" new_object)
+    else()
+        modify_package("${object}" "${NEW_VERSION}" "${pkg_hash}" new_object)
+    endif()
 endif()
 
 # update cached cpmfile content
-string(JSON cpmfile SET "${cpmfile}" "${key}" "${new_object}")
+string(JSON cpmfile SET "${cpmfile}" "${KEY}" "${new_object}")
 
 # write cached cpmfile
 get_cpmfile_path(file)

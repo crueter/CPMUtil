@@ -19,6 +19,23 @@ macro(parse_key key)
     parse_object(${object})
 endmacro()
 
+# Analogous to GNU mktemp
+function(mktempdir out)
+    string(RANDOM LENGTH 10 rand_str)
+    set(tmp_str "tmp.${rand_str}")
+
+    set(dir "${CMAKE_CURRENT_LIST_DIR}/.tmp/${tmp_str}")
+    file(MAKE_DIRECTORY "${dir}" RESULT res)
+
+    if (res EQUAL 0)
+        set(${out} "${dir}" PARENT_SCOPE)
+        return()
+    endif()
+
+    fatal("Fatal: Could not create temporary directory. "
+        "Check write permissions to the current directory")
+endfunction()
+
 # Get a package's effective URL, for an already parsed object
 function(get_package_url_object out)
     if (${url})
@@ -244,7 +261,12 @@ endfunction()
 # Update hash and version of a package
 # Outputs the updated object
 function(modify_package object version hash out)
-    string(JSON new_object SET "${object}" hash "\"${hash}\"")
+    if (NOT hash STREQUAL "")
+        string(JSON new_object SET "${object}" hash "\"${hash}\"")
+    else()
+        set(new_object "${object}")
+    endif()
+
     string(JSON new_object SET "${new_object}" version "\"${version}\"")
 
     set(${out} "${new_object}")
@@ -338,4 +360,57 @@ function(list_to_array list out)
     endforeach()
 
     return(PROPAGATE ${out})
+endfunction()
+
+# CI package helpers
+set(CPMUTIL_CI_PLATFORMS
+    "windows-amd64" "windows-aarch64"
+    "mingw-amd64" "mingw-aarch64"
+    "linux-amd64" "linux-aarch64"
+    "android-amd64" "android-aarch64"
+    "macos-aarch64" "ios-aarch64")
+
+# Collect hash
+function(ci_collect_hash pkgname out)
+    if(NOT "${pkgname}" IN_LIST CPMUTIL_CI_PLATFORMS)
+        set(${out} "" PARENT_SCOPE)
+        return()
+    endif()
+
+    # TODO vars
+    set(ARTIFACT "${ARTIFACT_NAME}-${pkgname}-${ARTIFACT_VERSION}.${ARTIFACT_EXT}")
+    set(sha512sum_file ${ARTIFACT}.sha512sum)
+    set(sha_url "https://${ARTIFACT_GIT_HOST}/${ARTIFACT_REPO}/releases/download/${ARTIFACT_VERSION}/${sha512sum_file}")
+
+    # TODO retry
+    mktempdir(TMP)
+    set(dl_file ${TMP}/.download_sha512sum)
+
+    file(DOWNLOAD "${sha_url}" "${dl_file}" STATUS sha512sum_status)
+    list(GET sha512sum_status 0 sha512sum_error)
+
+    if(sha512sum_error)
+        set(${out} "" PARENT_SCOPE)
+        file(REMOVE_RECURSE ${TMP})
+        return()
+    endif()
+
+    file(READ "${dl_file}" hash)
+    string(STRIP "${hash}" hash)
+    file(REMOVE_RECURSE ${TMP})
+
+    set(${out} ${hash} PARENT_SCOPE)
+endfunction()
+
+# collect all hashes
+function(ci_collect_all_hashes out)
+    set(hashes "{}")
+    foreach(pkgname ${CPMUTIL_CI_PLATFORMS})
+        ci_collect_hash("${pkgname}" pkg_hash)
+
+        if(pkg_hash)
+            string(JSON hashes SET "${hashes}" "${pkgname}" "\"${pkg_hash}\"")
+        endif()
+    endforeach()
+    set(${out} ${hashes} PARENT_SCOPE)
 endfunction()

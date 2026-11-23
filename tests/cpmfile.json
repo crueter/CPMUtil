@@ -35,8 +35,17 @@
     "ffmpeg": {
         "artifact": "ffmpeg",
         "ci": true,
+        "hashes": {
+            "linux-aarch64": "b2c9f269b792646fdd67d1094334b5cd4d5269725c831c417470a5f1dc2ea23bf4422b5efdadd6d1cf15d87800e3a0140f8165046a3e1f4811a03aa1902bc770",
+            "linux-amd64": "43be95817983181aff8dcea23ccc228555f704206560293f58c901a350daf96693b5b0bf9e38ce7edb3610e7a6b3ed2e126bb36a0c427927fd8a58218eb143f7",
+            "macos-aarch64": "72ea9c5da7055d908e185987722f69d275feef96e6c81bdbd7f9a55524b8861524fae8f698ca838bc0c7d671b369a854ebbed0a1a6a2b3401b991fb4268f9de9",
+            "mingw-aarch64": "99a1649ce46dad5be5658464ffee098bcb7b984611948ec9b4b054547a508034b98c36ab6198c27f4358197a4ead554e45d1b188d236ea484f0bcaccdc788ed4",
+            "mingw-amd64": "f3b247de674c949f0809c2092f7a4a0448c8841c7f0b8606ccc07f48b3312f4436002a63ba627062c9dc792039c8447cacde8beefcd7f417476b86fb710ef7c9",
+            "windows-aarch64": "54f483d6b91f1da5b92c9b692bba489753d6b6389e24103ca641985c5489addcb77e209632f92302d166842486e48c97dc12cb42e5031ac56be5e2b1f649b60e",
+            "windows-amd64": "5a7502f7f183d158a8f8c6e9ac12e24c5f748cd4d8c3d1096c7576e7989cb673d000ac313e5c82679fde17a0b01f7ddedb179b35f80c6ac3c3152257c89694a0"
+        },
         "repo": "crueter-ci/FFmpeg-Qt",
-        "version": "8.2-f16c3cc5aa"
+        "version": "9.0.2-1795401592-946fcce07b"
     },
     "fmt": {
         "hash": "f0da82c545b01692e9fd30fdfb613dbb8dd9716983dcd0ff19ac2a8d36f74beb5540ef38072fdecc1e34191b3682a8542ecbf3a61ef287dbba0a2679d4e023f2",
@@ -49,10 +58,22 @@
         "version": "mbedtls-2.28.10"
     },
     "openssl": {
-        "artifact": "openssl",
         "ci": true,
+        "hashes": {
+            "android-aarch64": "7b35c505c7e57c2bb792ff191ed3f1412b1b0575e1ce278681d48678b8cf8c17d8fee0fc276c074e5a141adc5bafd7a54073f223d8aff40d3e0f938a76363b5e",
+            "android-amd64": "1dcb151c4387c72bb15fd971c0fc717b3ba59d50554200a0902d90ed5fa0f8e0f93b4c2b241e08c20587853b6dbc0638dbe420019928f08ed09ab05acc62d8d9",
+            "ios-aarch64": "f6a16d72af48de31ce244a54628ba6c2503685f8cf78f6cfd765f51f8cc83334899f9da9b0f5983ac5b6ed92766c0f3aba47e7fc43f8fefd811f173a974cd344",
+            "linux-aarch64": "24146f12981fd1fd425f70b53a9438565ac47fb52714b03a95e0503e99890b63471a00bd717c832ff2a0ba41b76ce6575e2602d59004031b88ec5f3cc325289b",
+            "linux-amd64": "309572b02281c769dc0d8953e7b3768b23fb897d7565dd3c9a2e72615c8f2c7cde5f88265cff5754de45cda3098e318cde0c2c0336b206933825475450de7297",
+            "macos-aarch64": "b91d61cf356625b2a983aa1e116b7701b34bd594a76ff74f19819df0bf10c17c68dd136604d7bc607b63b5aca0555f0b6d8b0576643442195e99abaa912da9e5",
+            "mingw-aarch64": "5577796354e0c94a8d2bef2b2c8dd1be6a7a8cf1a88a3bd9d1795899b9a600c5dd68d474d93b3d6f7b1999e53ef6f4ad359e41670828224695e240a42b268b88",
+            "mingw-amd64": "b88330d64e041c0d8695d746668056114012ed727f29895d03771b887ca7c7bdc71f25db29b970d24a070304826194efa7a8901ab56a97355f62a4196b25a322",
+            "windows-aarch64": "2494a15f629f374619b35edad2366df2a574a21a5773b74e5c46974e17a586b2120ef4f761c81413882437cad5ff6796efb09237638104cbd92e392926631492",
+            "windows-amd64": "5467341b43af681606e5d82414a033d3c1531ad94f5e80d37869b23155ab7679c35b522f2ebc2bdc4125e282f9def654045918e30f225f60f739fae84eb5104c"
+        },
+        "package": "OpenSSL",
         "repo": "crueter-ci/OpenSSL",
-        "version": "3.6.0-1cb0d36b39"
+        "version": "4.0.1-1789774337-b64f68a94e"
     },
     "openssl-src": {
         "repo": "openssl/openssl",
@@ -70,6 +91,22 @@
         "package": "Opus",
         "repo": "xiph/opus",
         "version": "5ded705cf4"
+    },
+    "qt": {
+        "artifact": "qt",
+        "ci": "true",
+        "hashes": {
+            "linux-aarch64": "8ac75e222dc5d38aec34e397daef0c7c5545376aa7c826dddf4be094d189fc2a8ad9fa0d326d81e227ab1a0d9599a11f16a3dd86d4a41356e8435830d5623d38",
+            "linux-amd64": "32f9d3da389242c37664831b0807699e62ca87f66fd1dfd4cbcf7e7c73e1cb0731d66e10871812e716b6843ceaf4d7bb67f1c8835e0b24726d47aa23265cad04",
+            "macos-aarch64": "dbf8d3c64018ddfec42ace35fe7aa73c61b32b19cbb4f246868969daf13b4c631b9da3996353284482e984a974825176d18ff50d796b01800bd35a7c397e1bb0",
+            "mingw-aarch64": "49d3ae6218ef7309f41312433f7552b3936aa10329f4520e35334864a186076d224eed22ceb37745536812f819d2a9c32c24b6a5adceef089c544c5059f16fed",
+            "mingw-amd64": "dcdaf6810ac175fe0f9bdd5811efa41049703a61c5f893c6b6ac686b41dd9586fec339bef0bc6f9217a4f5fcd2b96dd313a6cfe4e96d00e8fed1cbca1ab0a1fa",
+            "windows-aarch64": "e9548e9e86b008fd116fa2e50b0882d30c66eb0d85aaf24c61b29bb4a34adc1c95c6d08d1f28413d02c46c9966e37ce464a07778126728c2d2f4408bea638e25",
+            "windows-amd64": "510780e5bfa2ed810d5ac2f3e14a06aa4e38079ea8495a5e14f3df7ebade24e9a21f690819feb66f296ed1284705d2906a2cc029d47a486e4d66160cc4cc34d2"
+        },
+        "package": "Qt6",
+        "repo": "crueter-ci/Qt",
+        "version": "6.11.3-1795394208"
     },
     "sdl2": {
         "artifact": "SDL2",
