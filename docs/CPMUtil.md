@@ -346,15 +346,17 @@ From here, calling `find_package(OpenSSL)` will use the bundled OpenSSL.
 
 ## Addendum: Adding Qt
 
-If you'd like to use customized Qt builds, CPMUtil provides a convenience function that allows you to add Qt builds. This usage and setup is subject to change.
+If you'd like to use customized Qt builds, CPMUtil provides a convenience script that lets you add any specialized build of Qt.
 
-See [crueter-ci/Qt](https://github.com/crueter-ci/Qt) for an example of how one might build customized Qt. To add a Qt build to your project, use `AddQt(<repository> <version>)`, e.g.:
+See [crueter-ci/Qt](https://github.com/crueter-ci/Qt) for an example of how one might build customized Qt. To add a Qt build to your project, use `cpmutil.sh package add-qt <repo> <version>`, e.g.:
 
-```cmake
-AddQt(QDash-CI/Qt 6.11.1)
+```sh
+$ tools/cpmutil.sh package add-qt Eden-CI/Qt 6.11.3-1795405713
+-- Added qt
+Added package qt to cpmfile.json. Include it in your project with AddJsonPackage(NAME qt MODULE_PATH)
 ```
 
-Then, call `find_package(Qt6 ...)` and it will pull Qt from your downloaded source.
+As the prompt says, call `AddJsonPackage(NAME qt MODULE_PATH)`. From there, calling `find_package(Qt6)` will redirect to the bundled download of Qt.
 
 ## Addendum: Package-Specific Overrides
 
