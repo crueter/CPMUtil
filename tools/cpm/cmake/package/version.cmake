@@ -49,13 +49,11 @@ else()
     set(version ${NEW_VERSION})
 endif()
 
-get_json_element("${object}" artifact artifact)
-
 # Redo version replacements
 process_version_replacements()
 
 if (ci)
-    set(ARTIFACT_NAME ${artifact})
+    set(ARTIFACT_NAME ${name})
     set(ARTIFACT_VERSION ${version})
     set(ARTIFACT_EXT ${extension})
     set(ARTIFACT_GIT_HOST ${git_host})
