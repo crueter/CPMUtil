@@ -1232,26 +1232,3 @@ function(AddCIPackage)
             "Unsupported platform ${pkgname} for CI package")
     endif()
 endfunction()
-
-# Utility function for Qt
-function(AddQt repo version)
-    if (NOT DEFINED repo)
-        message(FATAL_ERROR "[CPMUtil] AddQt: repo is required")
-    endif()
-
-    if (NOT DEFINED version)
-        message(FATAL_ERROR "[CPMUtil] AddQt: version is required")
-    endif()
-
-    AddCIPackage(
-        NAME qt
-        PACKAGE Qt6
-        VERSION ${version}
-        REPO ${repo}
-        MODULE_PATH)
-
-    find_package(Qt6 REQUIRED PATHS ${Qt6_SOURCE_DIR} NO_DEFAULT_PATH)
-
-    Propagate(CMAKE_PREFIX_PATH)
-    Propagate(Qt6_SOURCE_DIR)
-endfunction()

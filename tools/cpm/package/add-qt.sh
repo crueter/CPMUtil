@@ -39,4 +39,4 @@ cmake \
 	-DARTIFACT=qt \
 	-P "$CMAKE"/add.cmake
 
-echo "Added package qt to cpmfile.json. Include it in your project with AddJsonPackage(qt)"
+echo "Added package qt to cpmfile.json. Include it in your project with AddJsonPackage(NAME qt MODULE_PATH)"
